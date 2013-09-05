@@ -22,14 +22,17 @@
 #include <linux/msm_ion.h>
 #include <linux/ion.h>
 #include <linux/mm.h>
+#include <linux/vmalloc.h>
 #include <linux/scatterlist.h>
 #include <linux/slab.h>
 #include <linux/memory_alloc.h>
 #include <linux/seq_file.h>
 #include <linux/fmem.h>
 #include <linux/iommu.h>
+#include <linux/dma-debug.h>
 #include <linux/dma-attrs.h>
 #include <linux/dma-mapping.h>
+#include <trace/events/kmem.h>
 
 #include <asm/mach/map.h>
 
@@ -113,8 +116,6 @@ enum {
 	HEAP_PROTECTED = 1,
 };
 
-#define DMA_ALLOC_RETRIES	5
-
 static int ion_cp_protect_mem(unsigned int phy_base, unsigned int size,
 			unsigned int permission_type, int version,
 			void *data);
@@ -122,6 +123,8 @@ static int ion_cp_protect_mem(unsigned int phy_base, unsigned int size,
 static int ion_cp_unprotect_mem(unsigned int phy_base, unsigned int size,
 				unsigned int permission_type, int version,
 				void *data);
+#define DMA_ALLOC_TRIES	5
+#define DMA_ALLOC_RETRIES 5
 
 static int allocate_heap_memory(struct ion_heap *heap)
 {
@@ -137,14 +140,16 @@ static int allocate_heap_memory(struct ion_heap *heap)
 	if (cp_heap->cpu_addr)
 		return 0;
 
-	while (!cp_heap->cpu_addr && (++tries < DMA_ALLOC_RETRIES)) {
+	while (!cp_heap->cpu_addr && (++tries < DMA_ALLOC_TRIES)) {
 		cp_heap->cpu_addr = dma_alloc_attrs(dev,
 						cp_heap->heap_size,
 						&(cp_heap->handle),
 						0,
 						&attrs);
-		if (!cp_heap->cpu_addr)
+		if (!cp_heap->cpu_addr) {
+			trace_ion_cp_alloc_retry(tries);
 			msleep(20);
+		}
 	}
 
 	if (!cp_heap->cpu_addr)
