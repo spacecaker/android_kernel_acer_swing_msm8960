@@ -19,10 +19,6 @@
 #include <mach/camera.h>
 #include <mach/gpiomux.h>
 
-#ifdef CONFIG_MACH_ACER_A9
-#define FRONT_CAM_PWD   67
-#endif
-
 #define BUFF_SIZE_128 128
 
 void msm_camera_io_w(u32 data, void __iomem *addr)
@@ -269,22 +265,8 @@ int msm_camera_enable_vreg(struct device *dev, struct camera_vreg_t *cam_vreg,
 			}
 		}
 	} else {
-#if !defined(CONFIG_MACH_ACER_A9)
 		for (i = num_vreg-1; i >= 0; i--)
 			regulator_disable(reg_ptr[i]);
-#else
-		for (i = num_vreg-1; i >= 0; i--) {
-#ifdef CONFIG_MACH_ACER_A11RD
-	                /*Keep the state of Cam_vdc(L8) and Cam_vana(L11)to be ON*/
-			if (strcmp(cam_vreg[i].reg_name, "cam_vana") != 0 && strcmp(cam_vreg[i].reg_name, "cam_vdc") != 0) {
-#else
-			/*Keep the state of Cam_vio(LVS5) and Cam_vana(L11)to be ON*/
-			if (strcmp(cam_vreg[i].reg_name, "cam_vana") != 0 && strcmp(cam_vreg[i].reg_name, "cam_vio") != 0) {
-#endif
-				regulator_disable(reg_ptr[i]);
-			}
-		}
-#endif
 	}
 	return rc;
 disable_vreg:
@@ -389,28 +371,12 @@ int msm_camera_config_gpio_table(struct msm_camera_sensor_info *sinfo,
 				gpio_conf->cam_gpio_set_tbl[i].delay + 1000);
 		}
 	} else {
-#if !defined(CONFIG_MACH_ACER_A9)
 		for (i = gpio_conf->cam_gpio_set_tbl_size - 1; i >= 0; i--) {
 			if (gpio_conf->cam_gpio_set_tbl[i].flags)
 				gpio_set_value_cansleep(
 					gpio_conf->cam_gpio_set_tbl[i].gpio,
 					GPIOF_OUT_INIT_LOW);
 		}
-#else
-		for (i = gpio_conf->cam_gpio_set_tbl_size - 1; i >= 0; i--) {
-			if (gpio_conf->cam_gpio_set_tbl[i].gpio == FRONT_CAM_PWD) {
-				if (gpio_conf->cam_gpio_set_tbl[i].flags)
-					gpio_set_value_cansleep(
-						gpio_conf->cam_gpio_set_tbl[i].gpio,
-						GPIOF_OUT_INIT_HIGH);
-			} else {
-				if (gpio_conf->cam_gpio_set_tbl[i].flags)
-					gpio_set_value_cansleep(
-						gpio_conf->cam_gpio_set_tbl[i].gpio,
-						GPIOF_OUT_INIT_LOW);
-			}
-		}
-#endif
 	}
 	return rc;
 }

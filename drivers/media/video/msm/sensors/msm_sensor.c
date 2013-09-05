@@ -1,4 +1,5 @@
 /* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
+ * Copyright (C) 2012 Sony Mobile Communications AB.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -166,15 +167,9 @@ int32_t msm_sensor_write_exp_gain1(struct msm_sensor_ctrl_t *s_ctrl,
 	msm_camera_i2c_write(s_ctrl->sensor_i2c_client,
 		s_ctrl->sensor_exp_gain_info->coarse_int_time_addr, line,
 		MSM_CAMERA_I2C_WORD_DATA);
-#ifdef CONFIG_MACH_ACER_A9
-	msm_camera_i2c_write(s_ctrl->sensor_i2c_client,
-		s_ctrl->sensor_exp_gain_info->global_gain_addr, gain,
-		MSM_CAMERA_I2C_BYTE_DATA);
-#else
 	msm_camera_i2c_write(s_ctrl->sensor_i2c_client,
 		s_ctrl->sensor_exp_gain_info->global_gain_addr, gain,
 		MSM_CAMERA_I2C_WORD_DATA);
-#endif
 	s_ctrl->func_tbl->sensor_group_hold_off(s_ctrl);
 	return 0;
 }
@@ -360,10 +355,14 @@ int32_t msm_sensor_release(struct msm_sensor_ctrl_t *s_ctrl)
 	CDBG("%s called\n", __func__);
 	s_ctrl->func_tbl->sensor_stop_stream(s_ctrl);
 	if (s_ctrl->curr_res != MSM_SENSOR_INVALID_RES) {
+#if defined(CONFIG_SONY_CAM_MAIN_V4L2) || defined(CONFIG_SONY_CAM_SUB_V4L2)
+		fps = 1000;
+#else
 		fps = s_ctrl->msm_sensor_reg->
 			output_settings[s_ctrl->curr_res].vt_pixel_clk /
 			s_ctrl->curr_frame_length_lines /
 			s_ctrl->curr_line_length_pclk;
+#endif
 		delay = 1000 / fps;
 		CDBG("%s fps = %ld, delay = %d\n", __func__, fps, delay);
 		msleep(delay);
@@ -539,54 +538,6 @@ int32_t msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp)
 				rc = -EFAULT;
 			break;
 
-#ifdef CONFIG_MACH_ACER_A9
-		case CFG_SET_BRIGHTNESS:
-			CDBG("msm_sensor_config: CFG_SET_BRIGHTNESS = %d\n", cdata.cfg.brightness);
-			if (s_ctrl->func_tbl->sensor_set_brightness == NULL) {
-				rc = -EFAULT;
-				break;
-			}
-			rc = s_ctrl->func_tbl->sensor_set_brightness(s_ctrl, cdata.cfg.brightness);
-			break;
-
-		case CFG_SET_CONTRAST:
-			CDBG("msm_sensor_config: CFG_SET_CONTRAST = %d\n", cdata.cfg.contrast);
-			if (s_ctrl->func_tbl->sensor_set_contrast == NULL) {
-				rc = -EFAULT;
-				break;
-			}
-			rc = s_ctrl->func_tbl->sensor_set_contrast(s_ctrl, cdata.cfg.contrast);
-			break;
-
-		case CFG_SET_SATURATION:
-			CDBG("msm_sensor_config: CFG_SET_SATURATION = %d\n", cdata.cfg.saturation);
-			if (s_ctrl->func_tbl->sensor_set_saturation == NULL) {
-				rc = -EFAULT;
-				break;
-			}
-			rc = s_ctrl->func_tbl->sensor_set_saturation(s_ctrl, cdata.cfg.saturation);
-			break;
-
-		case CFG_SET_SHARPNESS:
-			CDBG("msm_sensor_config: CFG_SET_SHARPNESS = %d\n", cdata.cfg.sharpness);
-			if (s_ctrl->func_tbl->sensor_set_sharpness == NULL) {
-				rc = -EFAULT;
-				break;
-			}
-			rc = s_ctrl->func_tbl->sensor_set_sharpness(s_ctrl, cdata.cfg.sharpness);
-			break;
-
-		case CFG_GET_LINE_COUNT:
-			if (s_ctrl->func_tbl->sensor_get_line_count == NULL) {
-				rc = -EFAULT;
-				break;
-			}
-			rc = s_ctrl->func_tbl->sensor_get_line_count(s_ctrl, &(cdata.cfg.line_count));
-			CDBG("msm_sensor_config: CFG_GET_LINE_COUNT = %u\n", cdata.cfg.line_count);
-			if (copy_to_user((void *)argp, &cdata, sizeof(struct sensor_cfg_data)))
-				rc = -EFAULT;
-			break;
-#endif
 		default:
 			rc = -EFAULT;
 			break;
@@ -658,40 +609,6 @@ int32_t msm_sensor_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 		goto enable_vreg_failed;
 	}
 
-#ifdef CONFIG_MACH_ACER_A9
-	if (s_ctrl->clk_rate != 0)
-		cam_clk_info->clk_rate = s_ctrl->clk_rate;
-
-	rc = msm_cam_clk_enable(&s_ctrl->sensor_i2c_client->client->dev,
-		cam_clk_info, &s_ctrl->cam_clk, ARRAY_SIZE(cam_clk_info), 1);
-	if (rc < 0) {
-		pr_err("%s: clk enable failed\n", __func__);
-		goto enable_clk_failed;
-	}
-
-	rc = msm_camera_config_gpio_table(data, 1);
-	if (rc < 0) {
-		pr_err("%s: config gpio failed\n", __func__);
-		goto config_gpio_failed;
-	}
-
-	usleep_range(1000, 2000);
-	if (data->sensor_platform_info->ext_power_ctrl != NULL)
-		data->sensor_platform_info->ext_power_ctrl(1);
-
-	if (data->sensor_platform_info->i2c_conf &&
-		data->sensor_platform_info->i2c_conf->use_i2c_mux)
-		msm_sensor_enable_i2c_mux(data->sensor_platform_info->i2c_conf);
-
-	return rc;
-config_gpio_failed:
-	msm_camera_enable_vreg(&s_ctrl->sensor_i2c_client->client->dev,
-			s_ctrl->sensordata->sensor_platform_info->cam_vreg,
-			s_ctrl->sensordata->sensor_platform_info->num_vreg,
-			s_ctrl->reg_ptr, 0);
-enable_clk_failed:
-		msm_camera_config_gpio_table(data, 0);
-#else
 	rc = msm_camera_config_gpio_table(data, 1);
 	if (rc < 0) {
 		pr_err("%s: config gpio failed\n", __func__);
@@ -726,7 +643,6 @@ config_gpio_failed:
 			s_ctrl->sensordata->sensor_platform_info->num_vreg,
 			s_ctrl->reg_ptr, 0);
 
-#endif
 enable_vreg_failed:
 	msm_camera_config_vreg(&s_ctrl->sensor_i2c_client->client->dev,
 		s_ctrl->sensordata->sensor_platform_info->cam_vreg,
@@ -780,45 +696,13 @@ int32_t msm_sensor_match_id(struct msm_sensor_ctrl_t *s_ctrl)
 		return rc;
 	}
 
-#ifdef CONFIG_MACH_ACER_A9
-	pr_info("msm_camera_sensor name: %s, id: 0x%x\n", s_ctrl->sensor_i2c_driver->driver.name, chipid);
-#else
 	CDBG("msm_sensor id: %d\n", chipid);
-#endif
 	if (chipid != s_ctrl->sensor_id_info->sensor_id) {
 		pr_err("msm_sensor_match_id chip id doesnot match\n");
 		return -ENODEV;
 	}
 	return rc;
 }
-
-#ifdef CONFIG_MACH_ACER_A9
-int32_t create_device_info(struct sensor_info_t *sensor_info)
-{
-	int retval;
-
-	if (sensor_info->kobj_name) {
-		sensor_info->kobj = kobject_create_and_add(sensor_info->kobj_name, NULL);
-		if (!sensor_info->kobj)
-			return -ENOMEM;
-	} else {
-		pr_err("%s: the name of the kobject is not set\n", __func__);
-		return -EINVAL;
-	}
-
-	// Create the files associated with this kobject
-	if (sensor_info->attr_group && sensor_info->attr_group->attrs) {
-		retval = sysfs_create_group(sensor_info->kobj, sensor_info->attr_group);
-		if (retval)
-			kobject_put(sensor_info->kobj);
-	} else {
-		pr_err("%s: the attr_group associated with the kobject is not set\n", __func__);
-		return -EINVAL;
-	}
-
-	return retval;
-}
-#endif
 
 struct msm_sensor_ctrl_t *get_sctrl(struct v4l2_subdev *sd)
 {
@@ -870,16 +754,6 @@ int32_t msm_sensor_i2c_probe(struct i2c_client *client,
 	if (rc < 0)
 		goto probe_fail;
 
-#ifdef CONFIG_MACH_ACER_A9
-	if (s_ctrl->sensor_info) {
-		if (create_device_info(s_ctrl->sensor_info))
-			pr_err("%s: create_device_info failed\n", __func__);
-
-	} else {
-		pr_err("%s: %s doesn't contain device info\n",
-			__func__, s_ctrl->sensor_i2c_driver->driver.name);
-	}
-#endif
 	snprintf(s_ctrl->sensor_v4l2_subdev.name,
 		sizeof(s_ctrl->sensor_v4l2_subdev.name), "%s", id->name);
 	v4l2_i2c_subdev_init(&s_ctrl->sensor_v4l2_subdev, client,
@@ -893,8 +767,6 @@ power_down:
 	if (rc > 0)
 		rc = 0;
 	s_ctrl->func_tbl->sensor_power_down(s_ctrl);
-
-	pr_err("%s %s success\n", __func__,client->name);
 	return rc;
 }
 

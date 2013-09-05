@@ -22,12 +22,6 @@
 #include <mach/pmic.h>
 #include <mach/camera.h>
 #include <mach/gpio.h>
-#ifdef CONFIG_MSM_CAMERA_FLASH_ADP1650
-#include "led_adp1650.h"
-#endif
-#ifdef CONFIG_MSM_CAMERA_FLASH_ADP1660
-#include "led_adp1660.h"
-#endif
 
 struct i2c_client *sx150x_client;
 struct timer_list timer_flash;
@@ -472,154 +466,6 @@ error:
 	return rc;
 }
 
-#ifdef CONFIG_MSM_CAMERA_FLASH_ADP1650
-int msm_camera_flash_drv_ic(
-	struct msm_camera_sensor_flash_drv_ic *external,
-	unsigned led_state)
-{
-	int rc = 0;
-
-	switch (led_state) {
-
-	case MSM_CAMERA_LED_INIT:
-		rc = adp1650_open_init();
-		if (rc < 0) {
-			pr_err("I2C add driver failed");
-			return rc;
-		}
-
-		rc = gpio_request(external->strobe_gpio, "adp1650");
-		if (!rc) {
-			gpio_direction_output(external->strobe_gpio, 0);
-		} else {
-			goto err1;
-		}
-		rc = gpio_request(external->flash_en_gpio, "adp1650");
-		if (!rc) {
-			gpio_direction_output(external->flash_en_gpio, 1);
-			break;
-		} else {
-			gpio_free(external->strobe_gpio);
-			goto err1;
-		}
-
-err1:
-		adp1650_release();
-
-		break;
-
-	case MSM_CAMERA_LED_RELEASE:
-		gpio_set_value_cansleep(external->strobe_gpio, 0);
-		gpio_free(external->strobe_gpio);
-		gpio_set_value_cansleep(external->flash_en_gpio, 0);
-		gpio_free(external->flash_en_gpio);
-		adp1650_release();
-		break;
-
-	case MSM_CAMERA_LED_OFF:
-		CDBG("%s: set MSM_CAMERA_LED_OFF\n", __func__);
-		rc = adp1650_flash_mode_control(led_state);
-		break;
-
-	case MSM_CAMERA_LED_LOW:
-		CDBG("%s: set MSM_CAMERA_LED_LOW\n", __func__);
-		rc = adp1650_flash_mode_control(led_state);
-		break;
-
-	case MSM_CAMERA_LED_HIGH:
-		CDBG("%s: set MSM_CAMERA_LED_HIGH\n", __func__);
-		rc = adp1650_flash_mode_control(led_state);
-		break;
-
-	case MSM_CAMERA_LED_TORCH:
-		CDBG("%s: set MSM_CAMERA_LED_TORCH\n", __func__);
-		rc = adp1650_torch_mode_control(1);
-		break;
-
-	default:
-		rc = -EFAULT;
-		break;
-	}
-
-	return rc;
-}
-#endif
-
-#ifdef CONFIG_MSM_CAMERA_FLASH_ADP1660
-int msm_camera_flash_drv_ic(
-	struct msm_camera_sensor_flash_drv_ic *external,
-	unsigned led_state)
-{
-	int rc = 0;
-
-	switch (led_state) {
-
-	case MSM_CAMERA_LED_INIT:
-		CDBG("%s: set MSM_CAMERA_LED_INIT\n", __func__);
-		rc = adp1660_open_init();
-		if (rc < 0) {
-			pr_err("I2C add driver failed");
-			return rc;
-		}
-
-		rc = gpio_request(external->strobe_gpio, "adp1660");
-		if (!rc) {
-			gpio_direction_output(external->strobe_gpio, 0);
-		} else {
-			goto err1;
-		}
-		rc = gpio_request(external->flash_en_gpio, "adp1660");
-		if (!rc) {
-			gpio_direction_output(external->flash_en_gpio, 1);
-			break;
-		} else {
-			gpio_free(external->strobe_gpio);
-			goto err1;
-		}
-
-err1:
-		adp1660_release();
-
-		break;
-
-	case MSM_CAMERA_LED_RELEASE:
-		CDBG("%s: set MSM_CAMERA_LED_RELEASE\n", __func__);
-		gpio_set_value_cansleep(external->strobe_gpio, 0);
-		gpio_free(external->strobe_gpio);
-		gpio_set_value_cansleep(external->flash_en_gpio, 0);
-		gpio_free(external->flash_en_gpio);
-		adp1660_release();
-		break;
-
-	case MSM_CAMERA_LED_OFF:
-		CDBG("%s: set MSM_CAMERA_LED_OFF\n", __func__);
-		rc = adp1660_flash_mode_control(led_state);
-		break;
-
-	case MSM_CAMERA_LED_LOW:
-		CDBG("%s: set MSM_CAMERA_LED_LOW\n", __func__);
-		rc = adp1660_flash_mode_control(led_state);
-		break;
-
-	case MSM_CAMERA_LED_HIGH:
-		CDBG("%s: set MSM_CAMERA_LED_HIGH\n", __func__);
-		rc = adp1660_flash_mode_control(led_state);
-		break;
-
-	case MSM_CAMERA_LED_TORCH:
-		CDBG("%s: set MSM_CAMERA_LED_TORCH\n", __func__);
-		rc = adp1660_torch_mode_control(1);
-		break;
-
-	default:
-		rc = -EFAULT;
-		break;
-	}
-
-	return rc;
-}
-#endif
-
 static int msm_camera_flash_pwm(
 	struct msm_camera_sensor_flash_pwm *pwm,
 	unsigned led_state)
@@ -748,14 +594,6 @@ int32_t msm_camera_flash_set_led_state(
 				&fdata->flash_src->_fsrc.ext_driver_src,
 				led_state);
 		break;
-
-#if defined(CONFIG_MSM_CAMERA_FLASH_ADP1650) || defined(CONFIG_MSM_CAMERA_FLASH_ADP1660)
-	case MSM_CAMERA_FLASH_SRC_DRV_IC:
-		rc = msm_camera_flash_drv_ic(
-			&fdata->flash_src->_fsrc.drv_ic_src,
-			led_state);
-		break;
-#endif
 
 	default:
 		rc = -ENODEV;

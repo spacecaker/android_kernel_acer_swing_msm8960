@@ -31,18 +31,6 @@ config MT9D112
 	default y
 	---help---
 	  MICRON 2M YUV Sensor
-config IMX175
-	bool "Sensor IMX175 (BAYER 8M)"
-	depends on MSM_CAMERA
-	default n
-	---help---
-	Sony 8MP Bayer Sensor
-config OV9740
-	bool "Sensor OV9740 (YUV HD)"
-	depends on MSM_CAMERA
-	default n
-	---help---
-	OmniVision HD YUV Sensor
 config IMX074
 	bool "Sensor IMX074 (BAYER 13.5M)"
 	depends on MSM_CAMERA
@@ -189,26 +177,6 @@ config MSM_CAMERA_FLASH_SC628A
 	  supports spotlight and flash light modes with
 	  differrent current levels.
 
-config MSM_CAMERA_FLASH_ADP1650
-	bool "Qualcomm MSM camera adp1650 flash support"
-	depends on MSM_CAMERA
-	default n
-	---help---
-	  Enable support for LED flash for msm camera.
-	  It is a samtech charge pump flash driver and it
-	  supports spotlight and flash light modes with
-	  differrent current levels.
-
-config MSM_CAMERA_FLASH_ADP1660
-	bool "Qualcomm MSM camera adp1660 flash support"
-	depends on MSM_CAMERA
-	default n
-	---help---
-	  Enable support for LED flash for msm camera.
-	  It is a samtech charge pump flash driver and it
-	  supports spotlight and flash light modes with
-	  differrent current levels.
-
 config MSM_CAMERA_FLASH_TPS61310
 	bool "Qualcomm MSM camera tps61310 flash support"
 	depends on MSM_CAMERA
@@ -297,6 +265,27 @@ config QUP_EXCLUSIVE_TO_CAMERA
 	  is disabled, the lvs1 voltage is enabled
 	  by QUP in the board file as QUP is used by
 	  applications other than camera.
+
+config SONY_CAM_MAIN_V4L2
+	bool "SONY specific camera (Main camera)"
+	depends on MSM_CAMERA && ARCH_MSM8960 && MSM_CAMERA_V4L2
+	default n
+	---help---
+	  SONY specific camera module for main camera
+
+config SONY_CAM_SUB_V4L2
+	bool "SONY specific camera (Sub camera)"
+	depends on MSM_CAMERA && ARCH_MSM8960 && MSM_CAMERA_V4L2
+	default n
+	---help---
+	  SONY specific camera module for sub camera
+
+config SONY_VPE
+	tristate "Qualcomm MSM Video Pre-processing Engine support"
+	depends on MSM_CAMERA && ARCH_MSM8960
+	default n
+	---help---
+	  Enable support for Video Pre-processing Engine
 
 config S5K3L1YX
 	bool "Sensor S5K3L1YX (BAYER 12M)"

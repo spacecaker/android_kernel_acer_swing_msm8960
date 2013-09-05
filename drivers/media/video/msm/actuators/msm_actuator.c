@@ -13,9 +13,6 @@
 #include <linux/module.h>
 #include "msm_actuator.h"
 
-#define AD5823_REG_VCM_CODE_MSB 0x04
-#define AD5823_REG_VCM_CODE_LSB 0x05
-
 static struct msm_actuator_ctrl_t msm_actuator_t;
 
 static struct msm_actuator msm_vcm_actuator_table = {
@@ -68,66 +65,13 @@ int32_t msm_actuator_i2c_write(struct msm_actuator_ctrl_t *a_ctrl,
 	int16_t next_lens_position, uint32_t hw_params)
 {
 	struct msm_actuator_reg_params_t *write_arr = a_ctrl->reg_tbl;
-#ifndef CONFIG_MACH_ACER_A9
 	uint32_t hw_dword = hw_params;
 	uint16_t i2c_byte1 = 0, i2c_byte2 = 0;
 	uint16_t value = 0;
-#endif
 	uint32_t size = a_ctrl->reg_tbl_size, i = 0;
 	int32_t rc = 0;
-
-	int con = 0;
-	uint8_t ad5823_ring_ctrl = 0;
-	uint16_t msb = 0;
-	uint16_t lsb = 0;
-
 	CDBG("%s: IN\n", __func__);
 	for (i = 0; i < size; i++) {
-#ifdef CONFIG_MACH_ACER_A9
-		if (write_arr[i].reg_write_type == MSM_ACTUATOR_WRITE_DAC){
-			CDBG("%s: MSM_ACTUATOR_WRITE_DAC ++\n", __func__);
-			ad5823_ring_ctrl = (hw_params & 0x100) >> 6;
-			msb = ad5823_ring_ctrl | ((next_lens_position & 0x0300) >> 8);
-			lsb = next_lens_position & 0x00FF;
-
-			CDBG("%s ad5823_vcm_step_time:0x%x next_lens_position:%d, msb:0x%x lsb:0x%x\n",
-			__func__, hw_params, next_lens_position, msb, lsb);
-
-			rc = msm_camera_i2c_write(&a_ctrl->i2c_client, AD5823_REG_VCM_CODE_MSB,
-			msb, MSM_CAMERA_I2C_BYTE_DATA);
-			if (rc < 0){
-				while(con < 3) {
-					pr_err("%s: re-write msb conount %d\n", __func__,con);
-					rc = msm_camera_i2c_write(&a_ctrl->i2c_client, AD5823_REG_VCM_CODE_MSB,
-					msb, MSM_CAMERA_I2C_BYTE_DATA);
-					if(rc < 0){
-						con++;
-						msleep(5);
-					} else {
-						break;
-					}
-				}
-			}
-
-			rc = msm_camera_i2c_write(&a_ctrl->i2c_client, AD5823_REG_VCM_CODE_LSB,
-			lsb, MSM_CAMERA_I2C_BYTE_DATA);
-			if (rc < 0){
-				con =0;
-				while(con < 3) {
-					pr_err("%s: re-write lsb conount %d\n", __func__,con);
-					rc = msm_camera_i2c_write(&a_ctrl->i2c_client, AD5823_REG_VCM_CODE_LSB,
-					msb, MSM_CAMERA_I2C_BYTE_DATA);
-					if(rc < 0){
-						con++;
-						msleep(5);
-					} else {
-						break;
-					}
-				}
-			}
-			CDBG("%s: MSM_ACTUATOR_WRITE_DAC --\n", __func__);
-		}
-#else
 		if (write_arr[i].reg_write_type == MSM_ACTUATOR_WRITE_DAC) {
 			value = (next_lens_position <<
 				write_arr[i].data_shift) |
@@ -168,7 +112,6 @@ int32_t msm_actuator_i2c_write(struct msm_actuator_ctrl_t *a_ctrl,
 			i2c_byte1, i2c_byte2);
 		rc = msm_camera_i2c_write(&a_ctrl->i2c_client,
 			i2c_byte1, i2c_byte2, a_ctrl->i2c_data_type);
-#endif
 	}
 		CDBG("%s: OUT\n", __func__);
 	return rc;
@@ -311,10 +254,8 @@ int32_t msm_actuator_move_focus(
 			target_step_pos = dest_step_pos;
 			target_lens_pos =
 				a_ctrl->step_position_table[target_step_pos];
-#ifndef CONFIG_MACH_ACER_A9
 			if (curr_lens_pos == target_lens_pos)
 				return rc;
-#endif
 			rc = a_ctrl->func_tbl->
 				actuator_write_focus(
 					a_ctrl,
@@ -329,18 +270,14 @@ int32_t msm_actuator_move_focus(
 					__func__, rc);
 				return rc;
 			}
-#ifndef CONFIG_MACH_ACER_A9
 			curr_lens_pos = target_lens_pos;
-#endif
 
 		} else {
 			target_step_pos = step_boundary;
 			target_lens_pos =
 				a_ctrl->step_position_table[target_step_pos];
-#ifndef CONFIG_MACH_ACER_A9
 			if (curr_lens_pos == target_lens_pos)
 				return rc;
-#endif
 			rc = a_ctrl->func_tbl->
 				actuator_write_focus(
 					a_ctrl,
@@ -355,9 +292,7 @@ int32_t msm_actuator_move_focus(
 					__func__, rc);
 				return rc;
 			}
-#ifndef CONFIG_MACH_ACER_A9
 			curr_lens_pos = target_lens_pos;
-#endif
 
 			a_ctrl->curr_region_index += sign_dir;
 		}

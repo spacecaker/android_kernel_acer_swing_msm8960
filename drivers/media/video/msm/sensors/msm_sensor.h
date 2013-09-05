@@ -140,22 +140,7 @@ struct msm_sensor_fn_t {
 		(struct msm_sensor_ctrl_t *s_ctrl, uint16_t res);
 	int32_t (*sensor_get_csi_params)(struct msm_sensor_ctrl_t *,
 		struct csi_lane_params_t *);
-#ifdef CONFIG_MACH_ACER_A9
-	int32_t (*sensor_set_brightness) (struct msm_sensor_ctrl_t *, uint32_t);
-	int32_t (*sensor_set_contrast) (struct msm_sensor_ctrl_t *, uint32_t);
-	int32_t (*sensor_set_saturation) (struct msm_sensor_ctrl_t *, uint32_t);
-	int32_t (*sensor_set_sharpness) (struct msm_sensor_ctrl_t *, uint32_t);
-	int32_t (*sensor_get_line_count) (struct msm_sensor_ctrl_t *, uint32_t *);
-#endif
 };
-
-#ifdef CONFIG_MACH_ACER_A9
-struct sensor_info_t {
-	const char *kobj_name;
-	struct kobject *kobj;
-	struct attribute_group *attr_group;
-};
-#endif
 
 struct msm_sensor_csi_info {
 	uint32_t csid_version;
@@ -201,9 +186,6 @@ struct msm_sensor_ctrl_t {
 	struct regulator **reg_ptr;
 	struct clk *cam_clk;
 	long clk_rate;
-#ifdef CONFIG_MACH_ACER_A9
-	struct sensor_info_t *sensor_info;
-#endif
 };
 
 void msm_sensor_start_stream(struct msm_sensor_ctrl_t *s_ctrl);
