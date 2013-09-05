@@ -45,28 +45,6 @@
 #define ALL_SSID		-1
 #define MAX_SSID_PER_RANGE	100
 
-#ifdef CONFIG_MACH_ACER_A9
-#include <linux/mfd/pm8xxx/pm8921-charger.h>
-#include <linux/power_supply.h>
-#define FAST_CHG_DISSABLE       "CCACERFASTCHARGING00"
-#define FAST_CHG_ENABLE         "CCACERFASTCHARGING01"
-#define BATT_INFO_REPORT        "CCACERFASTCHARGING02"
-#define FAST_CHG_CURRENT        1000
-#define USB_CHG_CURRENT         500
-#define FAST_CHG_CMD_LEN        23
-extern int pm8921_get_percent_soc(void);
-int fast_charging_mode = 0;
-#endif
-
-#ifdef CONFIG_DIAG_LOCK
-#define PWD_LEN                32
-static char *unlock_pwd = "acer.llxdiafkZidf#$i1234(@01xdiP";
-static char *lock_pwd =   "acer.dfzse,eizdfXD3#($%)@dxiexAA";
-static int diag_lock = 1;
-int debug_mode_enable = 0;
-#endif
-
-
 int diag_debug_buf_idx;
 unsigned char diag_debug_buf[1024];
 static unsigned int buf_tbl_size = 8; /*Number of entries in table of buffers */
@@ -118,24 +96,6 @@ do {									\
 #define CHK_OVERFLOW(bufStart, start, end, length) \
 ((bufStart <= start) && (end - start >= length)) ? 1 : 0
 
-#ifdef CONFIG_DIAG_LOCK
-static void try_to_unlock(unsigned char *cmd, int length)
-{
-       if (strncmp(cmd, unlock_pwd, PWD_LEN) == 0)
-               diag_lock = 0;
-
-       printk(KERN_INFO "try_to_unlock, diag_lock: %d\n", diag_lock);
-}
-
-static void try_to_lock(unsigned char *cmd, int length)
-{
-       if (strncmp(cmd, lock_pwd, PWD_LEN) == 0)
-               diag_lock = 1;
-
-       printk(KERN_INFO "try_to_lock, diag_lock: %d\n", diag_lock);
-}
-#endif
-
 /* Determine if this device uses a device tree */
 #ifdef CONFIG_OF
 static int has_device_tree(void)
@@ -172,6 +132,7 @@ int chk_config_get_id(void)
 		case MSM_CPU_8X60:
 			return APQ8060_TOOLS_ID;
 		case MSM_CPU_8960:
+		case MSM_CPU_8960AB:
 			return AO8960_TOOLS_ID;
 		case MSM_CPU_8064:
 			return APQ8064_TOOLS_ID;
@@ -199,6 +160,7 @@ int chk_apps_only(void)
 
 	switch (socinfo_get_msm_cpu()) {
 	case MSM_CPU_8960:
+	case MSM_CPU_8960AB:
 	case MSM_CPU_8064:
 	case MSM_CPU_8930:
 	case MSM_CPU_8930AA:
@@ -221,7 +183,8 @@ int chk_apps_master(void)
 	if (driver->use_device_tree)
 		return 1;
 	else if (cpu_is_msm8960() || cpu_is_msm8930() || cpu_is_msm8930aa() ||
-		cpu_is_msm9615() || cpu_is_apq8064() || cpu_is_msm8627())
+		cpu_is_msm9615() || cpu_is_apq8064() || cpu_is_msm8627() ||
+		cpu_is_msm8960ab())
 		return 1;
 	else
 		return 0;
@@ -317,14 +280,8 @@ void __diag_smd_send_req(void)
 				APPEND_DEBUG('j');
 				write_ptr_modem->length = r;
 				*in_busy_ptr = 1;
-#ifdef CONFIG_DIAG_LOCK
-                               if (!diag_lock || debug_mode_enable)
-                                       diag_device_write(buf, MODEM_DATA,
-                                                       write_ptr_modem);
-#else
 				diag_device_write(buf, MODEM_DATA,
 							 write_ptr_modem);
-#endif
 			}
 		}
 	} else if (driver->ch && !buf &&
@@ -584,16 +541,8 @@ void __diag_smd_qdsp_send_req(void)
 				APPEND_DEBUG('j');
 				write_ptr_qdsp->length = r;
 				*in_busy_qdsp_ptr = 1;
-#ifdef CONFIG_DIAG_LOCK
-                               if (!diag_lock || debug_mode_enable)
-                                       diag_device_write(buf, QDSP_DATA,
-                                                        write_ptr_qdsp);
-
-#else
-
 				diag_device_write(buf, QDSP_DATA,
 							 write_ptr_qdsp);
-#endif
 			}
 		}
 	} else if (driver->chqdsp && !buf &&
@@ -1623,24 +1572,6 @@ void diag_process_hdlc(void *data, unsigned len)
 	hdlc.dest_idx = 0;
 	hdlc.escaping = 0;
 
-#ifdef CONFIG_DIAG_LOCK
-       /* if diag doesn't receive unlock commmand, it will return error code */
-       if (fast_charging_mode) {
-               fast_charging_mode = 0;
-               return;
-       }
-
-       if (!debug_mode_enable) {
-               if (diag_lock) {
-                       /* return error code 13 00 */
-                       driver->apps_rsp_buf[0] = 0x13;
-                       driver->apps_rsp_buf[1] = 0x00;
-                       ENCODE_RSP_AND_SEND(1);
-                       return;
-               }
-       }
-#endif
-
 	ret = diag_hdlc_decode(&hdlc);
 
 	if (ret)
@@ -1678,11 +1609,7 @@ void diag_process_hdlc(void *data, unsigned len)
 							driver->hdlc_buf)+i));
 #endif /* DIAG DEBUG */
 	/* ignore 2 bytes for CRC, one for 7E and send */
-#ifdef CONFIG_DIAG_LOCK
-        if ((driver->ch) && (ret) && (type) && (hdlc.dest_idx > 3) && ( debug_mode_enable || !diag_lock)) {
-#else
 	if ((driver->ch) && (ret) && (type) && (hdlc.dest_idx > 3)) {
-#endif
 		APPEND_DEBUG('g');
 		smd_write(driver->ch, driver->hdlc_buf, hdlc.dest_idx - 3);
 		APPEND_DEBUG('h');
@@ -1741,10 +1668,6 @@ int diagfwd_connect(void)
 int diagfwd_disconnect(void)
 {
 	printk(KERN_DEBUG "diag: USB disconnected\n");
-#ifdef CONFIG_DIAG_LOCK
-        diag_lock = 1;
-        pr_info("%s, USB disconnect, Lock diag port: %d , debug_mode_enable %d \n",__func__,diag_lock,debug_mode_enable);
-#endif
 	driver->usb_connected = 0;
 	driver->debug_flag = 1;
 	usb_diag_free_req(driver->legacy_ch);
@@ -1855,57 +1778,6 @@ int diagfwd_read_complete(struct diag_request *diag_read_ptr)
 	return 0;
 }
 
-#ifdef CONFIG_MACH_ACER_A9
-/*
- * Acer Fast Charging Function
- */
-void usb_fast_chg(struct usb_diag_ch *ch, unsigned char *cmd, int length)
-{
-	int capacity = -1, value;
-
-	if (strncmp(cmd, FAST_CHG_ENABLE, FAST_CHG_CMD_LEN-5) == 0) {
-		if (cmd[19] == '2') {
-			capacity = pm8921_get_percent_soc();
-
-			/* Ack code: FEDCBA2 */
-			driver->apps_rsp_buf[0] = 0x46;
-			driver->apps_rsp_buf[1] = 0x45;
-			driver->apps_rsp_buf[2] = 0x44;
-			driver->apps_rsp_buf[3] = 0x43;
-			driver->apps_rsp_buf[4] = 0x42;
-			driver->apps_rsp_buf[5] = 0x41;
-			driver->apps_rsp_buf[6] = 0x32;
-			driver->apps_rsp_buf[7] = capacity;
-			ENCODE_RSP_AND_SEND(7);
-
-		} else {
-			value = (cmd[19] == '0') ? false : true;
-
-			if (value){
-				pm8921_set_usb_power_supply_type(POWER_SUPPLY_TYPE_AFC);
-				pr_info("%s, Enable Fast Charging set to 1100mA \n",__func__);
-			}else {
-				pm8921_set_usb_power_supply_type(POWER_SUPPLY_TYPE_USB_DCP);
-				pm8921_charger_vbus_draw(USB_CHG_CURRENT);
-				pr_info("%s, Disable Fast Charging set to 500mA \n",__func__);
-
-			}
-
-			/* Ack code: FEDCBA10 */
-			driver->apps_rsp_buf[0] = 0x46;
-			driver->apps_rsp_buf[1] = 0x45;
-			driver->apps_rsp_buf[2] = 0x44;
-			driver->apps_rsp_buf[3] = 0x43;
-			driver->apps_rsp_buf[4] = 0x42;
-			driver->apps_rsp_buf[5] = 0x41;
-			driver->apps_rsp_buf[6] = 0x31;
-			driver->apps_rsp_buf[7] = 0x30;
-			ENCODE_RSP_AND_SEND(7);
-		}
-	}
-}
-
-#endif
 void diag_read_work_fn(struct work_struct *work)
 {
 	APPEND_DEBUG('d');
@@ -1917,26 +1789,6 @@ void diag_read_work_fn(struct work_struct *work)
 
 void diag_process_hdlc_fn(struct work_struct *work)
 {
-#ifdef CONFIG_DIAG_LOCK
-       /* Diag port Lock/Unlock function */
-        if (driver->read_len_legacy == (PWD_LEN + 3) && !debug_mode_enable)
-        {
-                if(diag_lock)
-                        try_to_unlock((unsigned char *)(driver->usb_buf_out), driver->read_len_legacy);
-                else
-                        try_to_lock((unsigned char *)(driver->usb_buf_out), driver->read_len_legacy);
-        }
-
-#endif
-
-#ifdef CONFIG_MACH_ACER_A9
-	/* Acer Fast Charging function */
-	if (driver->read_len_legacy == FAST_CHG_CMD_LEN) {
-		fast_charging_mode = 1;
-		usb_fast_chg(driver->legacy_ch, (unsigned char *)(driver->usb_buf_out), driver->read_len_legacy);
-	}
-#endif
-
 	APPEND_DEBUG('D');
 	diag_process_hdlc(driver->usb_buf_out, driver->read_len_legacy);
 	diag_read_work_fn(work);

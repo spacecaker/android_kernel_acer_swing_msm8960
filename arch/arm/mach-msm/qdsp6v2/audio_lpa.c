@@ -28,7 +28,7 @@
 #include <linux/debugfs.h>
 #include <linux/delay.h>
 #include <linux/earlysuspend.h>
-#include <linux/ion.h>
+#include <linux/msm_ion.h>
 #include <linux/list.h>
 #include <linux/slab.h>
 #include <asm/atomic.h>
@@ -486,7 +486,7 @@ static int audlpa_ion_add(struct audio *audio,
 		goto flag_error;
 	}
 
-	temp_ptr = ion_map_kernel(audio->client, handle, ionflag);
+	temp_ptr = ion_map_kernel(audio->client, handle);
 	if (IS_ERR_OR_NULL(temp_ptr)) {
 		pr_err("%s: could not get virtual address\n", __func__);
 		goto map_error;
@@ -744,8 +744,8 @@ static long audio_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 		pr_debug("%s: AUDIO_GET_STATS cmd\n", __func__);
 		memset(&stats, 0, sizeof(stats));
-		timestamp = q6asm_get_session_time(audio->ac);
-		if (timestamp < 0) {
+		rc = q6asm_get_session_time(audio->ac, &timestamp);
+		if (rc < 0) {
 			pr_err("%s: Get Session Time return value =%lld\n",
 				__func__, timestamp);
 			return -EAGAIN;
@@ -1103,9 +1103,9 @@ static void audlpa_unmap_ion_region(struct audio *audio)
 	pr_debug("%s[%p]:\n", __func__, audio);
 	list_for_each_safe(ptr, next, &audio->ion_region_queue) {
 		region = list_entry(ptr, struct audlpa_ion_region, list);
+		pr_debug("%s[%p]: phy_address = 0x%lx\n",
+			__func__, audio, region->paddr);
 		if (region != NULL) {
-			pr_debug("%s[%p]: phy_address = 0x%lx\n",
-					__func__, audio, region->paddr);
 			rc = q6asm_memory_unmap(audio->ac,
 					(uint32_t)region->paddr, IN);
 			if (rc < 0)

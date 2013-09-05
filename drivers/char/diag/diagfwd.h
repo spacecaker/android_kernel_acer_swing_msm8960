@@ -45,7 +45,4 @@ extern int diag_debug_buf_idx;
 extern unsigned char diag_debug_buf[1024];
 extern int diag_event_num_bytes;
 extern struct platform_driver msm_diag_dci_driver;
-#ifdef CONFIG_DIAG_LOCK
-extern int debug_mode_enable;
-#endif
 #endif

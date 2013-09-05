@@ -39,9 +39,3 @@ config DIAG_BRIDGE_CODE
 	help
 	 SMUX/HSIC Transport Layer for DIAG Router
 endmenu
-
-config DIAG_LOCK
-       bool "Lock/Unlock Diag port "
-       default n
-       help
-        None

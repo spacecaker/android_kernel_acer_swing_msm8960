@@ -445,9 +445,9 @@ static void audio_aio_unmap_ion_region(struct q6audio_aio *audio)
 	pr_debug("%s[%p]:\n", __func__, audio);
 	list_for_each_safe(ptr, next, &audio->ion_region_queue) {
 		region = list_entry(ptr, struct audio_aio_ion_region, list);
+		pr_debug("%s[%p]: phy_address = 0x%lx\n",
+				__func__, audio, region->paddr);
 		if (region != NULL) {
-			pr_debug("%s[%p]: phy_address = 0x%lx\n",
-					__func__, audio, region->paddr);
 			rc = q6asm_memory_unmap(audio->ac,
 						(uint32_t)region->paddr, IN);
 			if (rc < 0)
@@ -704,7 +704,7 @@ static int audio_aio_ion_add(struct q6audio_aio *audio,
 		goto flag_error;
 	}
 
-	temp_ptr = ion_map_kernel(audio->client, handle, ionflag);
+	temp_ptr = ion_map_kernel(audio->client, handle);
 	if (IS_ERR_OR_NULL(temp_ptr)) {
 		pr_err("%s: could not get virtual address\n", __func__);
 		goto map_error;

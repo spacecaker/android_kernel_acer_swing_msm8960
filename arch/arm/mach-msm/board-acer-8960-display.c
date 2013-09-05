@@ -15,7 +15,7 @@
 #include <linux/ioport.h>
 #include <linux/platform_device.h>
 #include <linux/bootmem.h>
-#include <linux/ion.h>
+#include <linux/msm_ion.h>
 #include <linux/gpio.h>
 #include <asm/mach-types.h>
 #include <mach/msm_bus_board.h>
@@ -548,7 +548,7 @@ static struct msm_panel_common_pdata mdp_pdata = {
 #endif
 	.mdp_rev = MDP_REV_42,
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
-	.mem_hid = BIT(ION_CP_MM_HEAP_ID),
+        .mem_hid = BIT(ION_CP_MM_HEAP_ID),
 #else
 	.mem_hid = MEMTYPE_EBI1,
 #endif

@@ -176,14 +176,12 @@ static int snddev_mi2s_open(struct msm_snddev_info *dev_info)
 	u8 channels;
 	u8 num_of_sd_lines = 0;
 	struct snddev_mi2s_drv_state *drv = &snddev_mi2s_drv;
-	struct snddev_mi2s_data *snddev_mi2s_data;
+	struct snddev_mi2s_data *snddev_mi2s_data = dev_info->private_data;
 
 	if (!dev_info) {
 		pr_err("%s:  msm_snddev_info is null\n", __func__);
 		return -EINVAL;
 	}
-
-	snddev_mi2s_data = dev_info->private_data;
 
 	/* set up osr clk */
 	drv->tx_osrclk = clk_get_sys(NULL, "mi2s_osr_clk");
@@ -347,14 +345,12 @@ static int snddev_mi2s_close(struct msm_snddev_info *dev_info)
 {
 
 	struct snddev_mi2s_drv_state *mi2s_drv = &snddev_mi2s_drv;
-	struct snddev_mi2s_data *snddev_mi2s_data;
+	struct snddev_mi2s_data *snddev_mi2s_data = dev_info->private_data;
 
 	if (!dev_info) {
 		pr_err("%s:  msm_snddev_info is null\n", __func__);
 		return -EINVAL;
 	}
-
-	snddev_mi2s_data = dev_info->private_data;
 
 	if (!dev_info->opened) {
 		pr_err(" %s: calling close device with out opening the"
