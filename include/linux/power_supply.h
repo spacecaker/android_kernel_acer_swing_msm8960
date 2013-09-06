@@ -141,9 +141,6 @@ enum power_supply_type {
 	POWER_SUPPLY_TYPE_USB_CDP,	/* Charging Downstream Port */
 	POWER_SUPPLY_TYPE_USB_ACA,	/* Accessory Charger Adapters */
 	POWER_SUPPLY_TYPE_BMS,		/* Battery Monitor System */
-#ifdef CONFIG_MACH_ACER_A9
-	POWER_SUPPLY_TYPE_AFC,		/* Acer Fast Charging */
-#endif
 };
 
 union power_supply_propval {

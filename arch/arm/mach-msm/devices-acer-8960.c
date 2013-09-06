@@ -16,6 +16,7 @@
 #include <linux/platform_device.h>
 #include <linux/msm_rotator.h>
 #include <linux/msm_ion.h>
+#include <linux/ion.h>
 #include <linux/gpio.h>
 #include <linux/coresight.h>
 #include <asm/clkdev.h>
@@ -38,6 +39,7 @@
 #include <sound/apr_audio.h>
 #include <mach/msm_tsif.h>
 #include <mach/msm_serial_hs_lite.h>
+#include <mach/qdss.h>
 #include "clock.h"
 #include "devices.h"
 #include "devices-msm8x60.h"

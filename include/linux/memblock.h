@@ -2,8 +2,6 @@
 #define _LINUX_MEMBLOCK_H
 #ifdef __KERNEL__
 
-#define MEMBLOCK_ERROR  0
-
 #ifdef CONFIG_HAVE_MEMBLOCK
 /*
  * Logical memory blocks.
@@ -47,8 +45,6 @@ extern int memblock_debug;
 
 #define memblock_dbg(fmt, ...) \
 	if (memblock_debug) printk(KERN_INFO pr_fmt(fmt), ##__VA_ARGS__)
-
-extern phys_addr_t memblock_find_in_size(phys_addr_t size);
 
 phys_addr_t memblock_find_in_range_node(phys_addr_t start, phys_addr_t end,
 				phys_addr_t size, phys_addr_t align, int nid);

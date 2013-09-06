@@ -71,9 +71,6 @@ int wake_lock_active(struct wake_lock *lock);
  * number of jiffies until all active wake locks time out.
  */
 long has_wake_lock(int type);
-#ifdef CONFIG_ARCH_ACER_MSM8960
-long print_suspend_active_locks(void);
-#endif
 
 #else
 

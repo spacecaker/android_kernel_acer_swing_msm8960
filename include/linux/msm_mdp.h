@@ -274,17 +274,6 @@ struct msmfb_writeback_data {
 	struct msmfb_img img;
 };
 
-struct dpp_ctrl {
-	/*
-	 *'sharp_strength' has inputs = -128 <-> 127
-	 *  Increasingly positive values correlate with increasingly sharper
-	 *  picture. Increasingly negative values correlate with increasingly
-	 *  smoothed picture.
-	 */
-	int8_t sharp_strength;
-	int8_t hsic_params[NUM_HSIC_PARAM];
-};
-
 #define MDP_PP_OPS_READ 0x2
 #define MDP_PP_OPS_WRITE 0x4
 
@@ -348,7 +337,6 @@ struct mdp_overlay {
 	uint32_t flags;
 	uint32_t id;
 	uint32_t user_data[8];
-	struct dpp_ctrl dpp;
 	struct mdp_overlay_pp_params overlay_pp_cfg;
 };
 
