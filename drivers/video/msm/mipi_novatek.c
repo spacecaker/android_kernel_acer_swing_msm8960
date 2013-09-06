@@ -11,7 +11,6 @@
  *
  */
 #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsizeof-pointer-memaccess"
 
 #ifdef CONFIG_SPI_QUP
 #include <linux/spi/spi.h>

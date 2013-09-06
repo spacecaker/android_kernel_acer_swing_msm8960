@@ -10,6 +10,9 @@
  * GNU General Public License for more details.
  *
  */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-value"
+
 #include <linux/kernel.h>
 #include <linux/platform_device.h>
 #include <linux/io.h>
@@ -670,7 +673,6 @@ static struct pn544_nfc_platform_data nxp_pn544_pdata = {
 	.enable = nxp_pn544_enable,
 	.test = nxp_pn544_test,
 	.disable = nxp_pn544_disable,
-	.irq_gpio = NXP_PN544_INTR,
 };
 
 static struct i2c_board_info nfc_nxp_pn544_info[] __initdata = {
@@ -2576,8 +2578,6 @@ static void __init acer_msm8960_init(void)
 	if (acer_boot_mode != CHARGER_BOOT) {
 #if defined(CONFIG_MACH_ACER_A11RD)
 		a11_ts_init();
-#elif defined(CONFIG_MACH_ACER_A9)
-		a9_ts_init();
 #endif
 	}
 

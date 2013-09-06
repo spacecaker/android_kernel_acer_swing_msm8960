@@ -9,6 +9,9 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Werror"
+#pragma GCC diagnostic ignored "-Werror="
 
 #include <linux/kernel.h>
 #include <linux/init.h>
@@ -19,6 +22,8 @@
 #include <linux/spinlock.h>
 #include <linux/delay.h>
 #include <linux/clk.h>
+#include <linux/msm_ion.h>
+#include <linux/ion.h>
 
 #include <asm/clkdev.h>
 #include <asm/mach-types.h>

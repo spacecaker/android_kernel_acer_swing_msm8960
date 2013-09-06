@@ -63,7 +63,6 @@
  */
 /* #define TC358764_USE_I2C_MASTER */
 #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsizeof-pointer-memaccess"
 
 #define DRV_NAME "mipi_tc358764"
 

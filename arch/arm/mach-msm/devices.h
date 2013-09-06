@@ -54,6 +54,7 @@ extern struct platform_device msm_device_uart_dm12;
 extern struct platform_device *msm_device_uart_gsbi9;
 extern struct platform_device msm_device_uart_dm6;
 extern struct platform_device msm_device_uart_dm9;
+extern struct platform_device msm8960_device_uart_gsbi4;
 
 extern struct platform_device msm8960_device_uart_gsbi2;
 extern struct platform_device msm8960_device_uart_gsbi5;
@@ -202,6 +203,7 @@ extern struct platform_device msm_gsbi1_qup_spi_device;
 extern struct platform_device msm_device_vidc_720p;
 
 extern struct platform_device msm_pcm;
+extern struct platform_device msm_lowlatency_pcm;
 extern struct platform_device msm_multi_ch_pcm;
 extern struct platform_device msm_pcm_routing;
 extern struct platform_device msm_cpudai0;

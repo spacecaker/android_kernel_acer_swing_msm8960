@@ -24,7 +24,6 @@
 
 /* Bluetooth HCI connection handling. */
 #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsizeof-pointer-memaccess"
 
 #include <linux/module.h>
 
