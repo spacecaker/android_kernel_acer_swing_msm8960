@@ -159,8 +159,4 @@ static inline int pm8xxx_gpio_config(int gpio, struct pm_gpio *param)
 }
 #endif
 
-#ifdef CONFIG_ARCH_ACER_MSM8960
-void save_pmic_gpio_sleep_state(void);
-#endif
-
 #endif

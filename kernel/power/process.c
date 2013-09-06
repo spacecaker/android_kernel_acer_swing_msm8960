@@ -25,11 +25,6 @@
  */
 #define TIMEOUT	(20 * HZ)
 
-#ifdef CONFIG_ARCH_ACER_MSM8960
-extern int msm_watchdog_suspend(struct device *dev);
-extern int msm_watchdog_resume(struct device *dev);
-#endif
-
 static int try_to_freeze_tasks(bool user_only)
 {
 	struct task_struct *g, *p;
@@ -122,22 +117,12 @@ static int try_to_freeze_tasks(bool user_only)
 
 		if (!wakeup) {
 			read_lock(&tasklist_lock);
-#ifdef CONFIG_ARCH_ACER_MSM8960
-			/* Suspend wdog until all stacks are printed */
-			msm_watchdog_suspend(NULL);
-#endif
 			do_each_thread(g, p) {
-#ifndef CONFIG_ARCH_ACER_MSM8960
 				if (p != current && !freezer_should_skip(p)
 				    && freezing(p) && !frozen(p) &&
 				    elapsed_csecs > 100)
 					sched_show_task(p);
-#endif
 			} while_each_thread(g, p);
-#ifdef CONFIG_ARCH_ACER_MSM8960
-			/* Suspend wdog until all stacks are printed */
-			msm_watchdog_resume(NULL);
-#endif
 			read_unlock(&tasklist_lock);
 		}
 	} else {

@@ -47,16 +47,6 @@
 #include <mach/msm_bus.h>
 #include <mach/rpm-regulator.h>
 
-#ifdef CONFIG_MACH_ACER_A9
-#include "../../../arch/arm/mach-msm/board-acer-8960.h"
-extern int acer_boot_mode;
-#endif
-
-#ifdef CONFIG_FORCE_FAST_CHARGE
-#include <linux/fastchg.h>
-#define USB_FASTCHG_LOAD 1000 /* uA */
-#endif
-
 #define MSM_USB_BASE	(motg->regs)
 #define DRIVER_NAME	"msm_otg"
 
@@ -87,26 +77,6 @@ static struct regulator *hsusb_vddcx;
 static struct regulator *vbus_otg;
 static struct regulator *mhl_usb_hs_switch;
 static struct power_supply *psy;
-
-#ifdef CONFIG_MACH_ACER_A9
-static bool ac_worker = false;
-
-static void wait_for_ac_worker(struct work_struct *w)
-{
-	struct msm_otg *motg = container_of(w, struct msm_otg, wait_for_ac_work.work);
-
-	if(motg->cur_power != IDEV_CHG_MIN){
-#ifdef CONFIG_POWER_SUPPLY_TYPE_UNKNOW
-		pm8921_set_usb_power_supply_type(POWER_SUPPLY_TYPE_UNKNOW);
-#else
-		pm8921_charger_vbus_draw(IDEV_CHG_MAX);
-#endif
-		motg->cur_power = IDEV_CHG_MAX;
-		ac_worker = false;
-		pr_info("%s, Unknow device, set current power to %d \n",__func__,motg->cur_power);
-	}
-}
-#endif
 
 static bool aca_id_turned_on;
 static inline bool aca_enabled(void)
@@ -484,12 +454,7 @@ static int msm_otg_reset(struct usb_phy *phy)
 	int ret;
 	u32 val = 0;
 	u32 ulpi_val = 0;
-#ifdef CONFIG_MACH_ACER_A9
-	if (ac_worker) {
-		pr_info("cancel delayed work,  wait_for_ac_work\n");
-		cancel_delayed_work_sync(&motg->wait_for_ac_work);
-	}
-#endif
+
 	/*
 	 * USB PHY and Link reset also reset the USB BAM.
 	 * Thus perform reset operation only once to avoid
@@ -1117,22 +1082,6 @@ static void msm_otg_notify_charger(struct msm_otg *motg, unsigned mA)
 
 	dev_info(motg->phy.dev, "Avail curr from USB = %u\n", mA);
 
-#ifdef CONFIG_FORCE_FAST_CHARGE
-  if (force_fast_charge == 1) {
-    // DooMLoRD: dont override charging current if available current is greater
-    if (mA >= USB_FASTCHG_LOAD){
-      pr_info("Available current already greater than USB fastcharging current!!!\n");
-      pr_info("Override of USB charging current cancelled.\n");
-    } else {   
-      mA = USB_FASTCHG_LOAD;
-      pr_info("USB fast charging is ON!!!\n");
-    }
-      dev_info(motg->phy.dev, "Avail curr from USB = %u\n", mA);
-  } else {
-    pr_info("USB fast charging is OFF.\n");
-  }
-#endif
-
 	/*
 	 *  Use Power Supply API if supported, otherwise fallback
 	 *  to legacy pm8921 API.
@@ -1467,6 +1416,26 @@ static int msm_otg_set_peripheral(struct usb_otg *otg,
 	}
 
 	return 0;
+}
+
+static bool msm_otg_read_pmic_id_state(struct msm_otg *motg)
+{
+	unsigned long flags;
+	int id;
+
+	if (!motg->pdata->pmic_id_irq)
+		return -ENODEV;
+
+	local_irq_save(flags);
+	id = irq_read_line(motg->pdata->pmic_id_irq);
+	local_irq_restore(flags);
+
+	/*
+	 * If we can not read ID line state for some reason, treat
+	 * it as float. This would prevent MHL discovery and kicking
+	 * host mode unnecessarily.
+	 */
+	return !!id;
 }
 
 static bool msm_chg_aca_detect(struct msm_otg *motg)
@@ -1855,18 +1824,6 @@ static void msm_chg_block_on(struct msm_otg *motg)
 	}
 }
 
-#ifdef CONFIG_MACH_ACER_A9
-static void set_eye_diagram(struct msm_otg *motg)
-{
-	/* Eye diagram for HW USB certification */
-	/* Set Qualcomm register PARAMETER_OVERRIDE_B from 0x33 to 0x3f */
-	ulpi_write(&motg->phy, 0x3f,0x81);
-
-	/* Set Qualcomm register PARAMETER_OVERRIDE_C from 0x14 to 0x34 */
-	ulpi_write(&motg->phy, 0x34,0x82);
-}
-#endif
-
 static void msm_chg_block_off(struct msm_otg *motg)
 {
 	struct usb_phy *phy = &motg->phy;
@@ -1960,9 +1917,6 @@ static void msm_chg_detect_work(struct work_struct *w)
 		}
 		break;
 	case USB_CHG_STATE_DCD_DONE:
-#ifdef CONFIG_MACH_ACER_A9
-		set_eye_diagram(motg);
-#endif
 		vout = msm_chg_check_primary_det(motg);
 		line_state = readl_relaxed(USB_PORTSC) & PORTSC_LS;
 		dm_vlgc = line_state & PORTSC_LS_DM;
@@ -2067,13 +2021,10 @@ static void msm_otg_init_sm(struct msm_otg *motg)
 				clear_bit(B_SESS_VLD, &motg->inputs);
 		} else if (pdata->otg_control == OTG_PMIC_CONTROL) {
 			if (pdata->pmic_id_irq) {
-				unsigned long flags;
-				local_irq_save(flags);
-				if (irq_read_line(pdata->pmic_id_irq))
+				if (msm_otg_read_pmic_id_state(motg))
 					set_bit(ID, &motg->inputs);
 				else
 					clear_bit(ID, &motg->inputs);
-				local_irq_restore(flags);
 			}
 			/*
 			 * VBUS initial state is reported after PMIC
@@ -2180,26 +2131,6 @@ static void msm_otg_sm_work(struct work_struct *w)
 					msm_otg_start_peripheral(otg, 1);
 					otg->phy->state =
 						OTG_STATE_B_PERIPHERAL;
-#ifdef CONFIG_MACH_ACER_A9
-					/*
-					 * For AC charger plug in/out slowly issue.
-					 * Using delay queue to poll chager state to eliminate hand tremor
-					 * Note: acer_boot_mode 0x02 is Factory test mode
-					 */
-					if (acer_boot_mode == NORMAL_BOOT ||
-					    acer_boot_mode == 0x02) {
-						queue_delayed_work(motg->detect_ac_queue,
-								&motg->wait_for_ac_work, msecs_to_jiffies(3000));
-						ac_worker = true;
-					} else if (acer_boot_mode == CHARGER_BOOT) {
-						/* Boot at Charger only mode*/
-						pr_info("Charger only mode set charging current to 500mA \n");
-						pm8921_charger_vbus_draw(IDEV_CHG_MIN);
-					} else {
-						pr_info("Unknow boot mode, Set unknow charging current to 500mA \n");
-						pm8921_charger_vbus_draw(IDEV_CHG_MIN);
-					}
-#endif
 					break;
 				default:
 					break;
@@ -2225,6 +2156,18 @@ static void msm_otg_sm_work(struct work_struct *w)
 			motg->chg_type = USB_INVALID_CHARGER;
 			msm_otg_notify_charger(motg, 0);
 			msm_otg_reset(otg->phy);
+			/*
+			 * There is a small window where ID interrupt
+			 * is not monitored during ID detection circuit
+			 * switch from ACA to PMIC.  Check ID state
+			 * before entering into low power mode.
+			 */
+			if (!msm_otg_read_pmic_id_state(motg)) {
+				pr_debug("process missed ID intr\n");
+				clear_bit(ID, &motg->inputs);
+				work = 1;
+				break;
+			}
 			pm_runtime_put_noidle(otg->phy->dev);
 			pm_runtime_suspend(otg->phy->dev);
 		}
@@ -2870,10 +2813,8 @@ static void msm_pmic_id_status_w(struct work_struct *w)
 	struct msm_otg *motg = container_of(w, struct msm_otg,
 						pmic_id_status_work.work);
 	int work = 0;
-	unsigned long flags;
 
-	local_irq_save(flags);
-	if (irq_read_line(motg->pdata->pmic_id_irq)) {
+	if (msm_otg_read_pmic_id_state(motg)) {
 		if (!test_and_set_bit(ID, &motg->inputs)) {
 			pr_debug("PMIC: ID set\n");
 			work = 1;
@@ -2892,7 +2833,6 @@ static void msm_pmic_id_status_w(struct work_struct *w)
 		else
 			queue_work(system_nrt_wq, &motg->sm_work);
 	}
-	local_irq_restore(flags);
 
 }
 
@@ -3522,16 +3462,6 @@ static int __init msm_otg_probe(struct platform_device *pdev)
 	INIT_WORK(&motg->sm_work, msm_otg_sm_work);
 	INIT_DELAYED_WORK(&motg->chg_work, msm_chg_detect_work);
 	INIT_DELAYED_WORK(&motg->pmic_id_status_work, msm_pmic_id_status_w);
-
-#ifdef CONFIG_MACH_ACER_A9
-	motg->detect_ac_queue = create_singlethread_workqueue("detete-AC");
-	if (motg->detect_ac_queue == NULL) {
-		pr_err("detecte_AC: Cannot create workqueue");
-		return -ENOMEM;
-	}
-	INIT_DELAYED_WORK(&motg->wait_for_ac_work, wait_for_ac_worker);
-#endif
-
 	setup_timer(&motg->id_timer, msm_otg_id_timer_func,
 				(unsigned long) motg);
 	ret = request_irq(motg->irq, msm_otg_irq, IRQF_SHARED,

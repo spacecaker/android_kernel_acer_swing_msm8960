@@ -1753,23 +1753,10 @@ EXPORT_SYMBOL(submit_bio);
  */
 int blk_rq_check_limits(struct request_queue *q, struct request *rq)
 {
-#ifdef CONFIG_MACH_ACER_A9
-	unsigned short max_sectors;
-#endif
-
 	if (rq->cmd_flags & (REQ_DISCARD | REQ_SANITIZE))
 		return 0;
 
-#ifdef CONFIG_MACH_ACER_A9
-	if (rq_data_dir(rq) == WRITE)
-		max_sectors = queue_max_write_sectors(q);
-	else
-		max_sectors = queue_max_sectors(q);
-
-	if (blk_rq_sectors(rq) > max_sectors ||
-#else
 	if (blk_rq_sectors(rq) > queue_max_sectors(q) ||
-#endif
 	    blk_rq_bytes(rq) > queue_max_hw_sectors(q) << 9) {
 		printk(KERN_ERR "%s: over max size limit.\n", __func__);
 		return -EIO;

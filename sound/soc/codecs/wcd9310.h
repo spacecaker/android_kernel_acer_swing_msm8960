@@ -34,16 +34,6 @@
 				SND_JACK_BTN_4 | SND_JACK_BTN_5 | \
 				SND_JACK_BTN_6 | SND_JACK_BTN_7)
 
-#ifdef CONFIG_MACH_ACER_A9
-#define WCD9310_DRIVER_NAME	"wcd9310"
-
-#define WCD9310_IOCTL_MAGIC		'f'
-#define IOC_MAXNR				2
-
-#define WCD9310_SET_CODEC		_IO(WCD9310_IOCTL_MAGIC, 1)
-#define WCD9310_GET_CODEC		_IO(WCD9310_IOCTL_MAGIC, 2)
-#endif
-
 extern const u8 tabla_reg_readable[TABLA_CACHE_SIZE];
 extern const u32 tabla_1_reg_readable[TABLA_1_X_ONLY_REGISTERS];
 extern const u32 tabla_2_reg_readable[TABLA_2_HIGHER_ONLY_REGISTERS];
@@ -197,13 +187,6 @@ struct anc_header {
 	u32 reserved[3];
 	u32 num_anc_slots;
 };
-
-#ifdef CONFIG_MACH_ACER_A9
-struct wcd9310_codec_info {
-	uint32_t reg;
-	uint32_t val;
-};
-#endif
 
 extern int tabla_mclk_enable(struct snd_soc_codec *codec, int mclk_enable,
 			     bool dapm);

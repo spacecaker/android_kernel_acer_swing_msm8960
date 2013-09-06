@@ -846,63 +846,13 @@ static const char * const pm8917_rev_names[] = {
 	[PM8XXX_REVISION_8917_1p0]	= "1.0",
 };
 
-#ifdef CONFIG_ARCH_ACER_MSM8960
-static enum pm8xxx_version version;
-static int revision;
-
-static ssize_t show_version(struct device *dev,
-				struct device_attribute *attr, char *buf)
-{
-	if (version == PM8XXX_VERSION_8921) {
-		return sprintf(buf, "PM8921\n");
-	} else if (version == PM8XXX_VERSION_8922) {
-		return sprintf(buf, "PM8922\n");
-	} else {
-		return sprintf(buf, "unknown\n");
-	}
-}
-
-static ssize_t show_revision(struct device *dev,
-				struct device_attribute *attr, char *buf)
-{
-	const char *revision_name = "unknown";
-
-	if (version == PM8XXX_VERSION_8921) {
-		if (revision >= 0 && revision < ARRAY_SIZE(pm8921_rev_names))
-			revision_name = pm8921_rev_names[revision];
-	} else if (version == PM8XXX_VERSION_8922) {
-		if (revision >= 0 && revision < ARRAY_SIZE(pm8922_rev_names))
-			revision_name = pm8922_rev_names[revision];
-	}
-
-	return sprintf(buf, "%s\n", revision_name);
-}
-
-static DEVICE_ATTR(chip, S_IRUGO, show_version, NULL);
-static DEVICE_ATTR(version, S_IRUGO, show_revision, NULL);
-
-static struct attribute *pmic_sysfs_entries[] = {
-	&dev_attr_chip.attr,
-	&dev_attr_version.attr,
-	NULL,
-};
-
-static struct attribute_group pmic_attr_group = {
-	.attrs	= pmic_sysfs_entries,
-};
-#endif
-
 static int __devinit pm8921_probe(struct platform_device *pdev)
 {
 	const struct pm8921_platform_data *pdata = pdev->dev.platform_data;
 	const char *revision_name = "unknown";
 	struct pm8921 *pmic;
-#ifdef CONFIG_ARCH_ACER_MSM8960
-	struct kobject *dev_info_pmic_kobj;
-#else
 	enum pm8xxx_version version;
 	int revision;
-#endif
 	int rc;
 	u8 val;
 
@@ -960,18 +910,6 @@ static int __devinit pm8921_probe(struct platform_device *pdev)
 			&& version != PM8XXX_VERSION_8922
 			&& version != PM8XXX_VERSION_8917);
 	}
-
-#ifdef CONFIG_ARCH_ACER_MSM8960
-	dev_info_pmic_kobj = kobject_create_and_add("dev-info_pmic", NULL);
-	if (dev_info_pmic_kobj == NULL) {
-		pr_err("Failed to create dev-info_pmic kobject\n");
-	}
-
-	rc = sysfs_create_group(dev_info_pmic_kobj, &pmic_attr_group);
-	if(rc) {
-		pr_err("Failed to create dev-info_pmic sysfs group\n");
-	}
-#endif
 
 	/* Log human readable restart reason */
 	rc = msm_ssbi_read(pdev->dev.parent, REG_PM8921_PON_CNTRL_3, &val, 1);

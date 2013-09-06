@@ -128,8 +128,3 @@ obj-$(CONFIG_PSTORE)		+= pstore/
 
 # Patched by YAFFS
 obj-$(CONFIG_YAFFS_FS)		+= yaffs2/
-
-# secure mount
-ifeq ($(CONFIG_ACER_SECURE_MOUNT),y)
-EXTRA_CFLAGS += -DCONFIG_SECURE_MOUNT
-endif

@@ -51,146 +51,6 @@
 #define PPSS_TIMER0_32KHZ_REG	0x1004
 #define PPSS_TIMER0_20MHZ_REG	0x0804
 
-#ifdef DSPS_DEVINFO
-#define MAX_VENDOR_NAME_SIZE 40
-
-#define devinfo_attr(_name, _prefix)			\
-static struct kobj_attribute _prefix##_attr = {		\
-	.attr = {									\
-			.name = __stringify(_name),		\
-			.mode = 0644,					\
-	},										\
-	.show = _prefix##_show,					\
-}
-
-#define attr(_prefix)							\
-static struct attribute * _prefix##_group[] = {		\
-	&_prefix##_vendor_attr.attr,				\
-	&_prefix##_chip_attr.attr,					\
-	NULL,									\
-}
-
-#define attr_group(_prefix)						\
-static struct attribute_group _prefix##_attr_group = {	\
-	.attrs = _prefix##_group,						\
-}
-
-static u8 accel_vendor_info[MAX_VENDOR_NAME_SIZE];
-static u8 gyro_vendor_info[MAX_VENDOR_NAME_SIZE];
-static u8 mag_vendor_info[MAX_VENDOR_NAME_SIZE];
-static u8 prox_light_vendor_info[MAX_VENDOR_NAME_SIZE];
-
-static u8 accel_chip_info = 0;
-static u8 gyro_chip_info = 0;
-static u8 mag_chip_info = 0;
-static u8 prox_light_chip_info = 0;
-
-static struct kobject *accel_dev_info_kobj;
-static struct kobject *gyro_dev_info_kobj;
-static struct kobject *mag_dev_info_kobj;
-static struct kobject *prox_light_dev_info_kobj;
-
-static ssize_t accel_vendor_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
-{
-	char *s = buf;
-	if (accel_vendor_info[0] != 0)
-		s += sprintf(s, "%s\n", accel_vendor_info);
-	else
-		s += sprintf(s, "%s\n", "unknown");
-	return (s - buf);
-}
-
-static ssize_t gyro_vendor_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
-{
-	char *s = buf;
-	if (gyro_vendor_info[0] != 0)
-		s += sprintf(s, "%s\n", gyro_vendor_info);
-	else
-		s += sprintf(s, "%s\n", "unknown");
-	return (s - buf);
-}
-
-static ssize_t mag_vendor_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
-{
-	char *s = buf;
-	if (mag_vendor_info[0] != 0)
-		s += sprintf(s, "%s\n", mag_vendor_info);
-	else
-		s += sprintf(s, "%s\n", "unknown");
-	return (s - buf);
-}
-
-static ssize_t prox_light_vendor_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
-{
-	char *s = buf;
-	if (prox_light_vendor_info[0] != 0)
-		s += sprintf(s, "%s\n", prox_light_vendor_info);
-	else
-		s += sprintf(s, "%s\n", "unknown");
-	return (s - buf);
-}
-
-static ssize_t accel_chip_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
-{
-	char *s = buf;
-	if (accel_chip_info != 0)
-		s += sprintf(s, "0x%02x\n", accel_chip_info);
-	else
-		s += sprintf(s, "%s\n", "unknown");
-	return (s - buf);
-}
-
-static ssize_t gyro_chip_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
-{
-	char *s = buf;
-	if (gyro_chip_info != 0)
-		s += sprintf(s, "0x%02x\n", gyro_chip_info);
-	else
-		s += sprintf(s, "%s\n", "unknown");
-	return (s - buf);
-}
-
-static ssize_t mag_chip_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
-{
-	char *s = buf;
-	if (mag_chip_info != 0)
-		s += sprintf(s, "0x%02x\n", mag_chip_info);
-	else
-		s += sprintf(s, "%s\n", "unknown");
-	return (s - buf);
-}
-
-static ssize_t prox_light_chip_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
-{
-	char *s = buf;
-	if (prox_light_chip_info != 0)
-		s += sprintf(s, "0x%02x\n", prox_light_chip_info);
-	else
-		s += sprintf(s, "%s\n", "unknown");
-	return (s - buf);
-}
-
-devinfo_attr(vendor, accel_vendor);
-devinfo_attr(vendor, gyro_vendor);
-devinfo_attr(vendor, mag_vendor);
-devinfo_attr(vendor, prox_light_vendor);
-
-devinfo_attr(chip, accel_chip);
-devinfo_attr(chip, gyro_chip);
-devinfo_attr(chip, mag_chip);
-devinfo_attr(chip, prox_light_chip);
-
-attr(accel);
-attr(gyro);
-attr(mag);
-attr(prox_light);
-
-attr_group(accel);
-attr_group(gyro);
-attr_group(mag);
-attr_group(prox_light);
-#endif
-
 /**
  *  Driver Context
  *
@@ -565,9 +425,6 @@ static long dsps_ioctl(struct file *file,
 {
 	int ret = 0;
 	u32 val = 0;
-	#ifdef DSPS_DEVINFO
-	u8 vendor_info[MAX_VENDOR_NAME_SIZE];
-	#endif
 
 	pr_debug("%s.\n", __func__);
 
@@ -598,40 +455,6 @@ static long dsps_ioctl(struct file *file,
 		dsps_restart_handler();
 		ret = 0;
 		break;
-	#ifdef DSPS_DEVINFO
-	case DSPS_IOCTL_WRITE_ACCEL_VENDOR_INFO:
-		memset(vendor_info, 0, MAX_VENDOR_NAME_SIZE);
-		ret = copy_from_user(vendor_info, (void __user*) arg, MAX_VENDOR_NAME_SIZE);
-		sprintf((char *)accel_vendor_info, "%s", (char *)vendor_info);
-		break;
-	case DSPS_IOCTL_WRITE_MAG_VENDOR_INFO:
-		memset(vendor_info, 0, MAX_VENDOR_NAME_SIZE);
-		ret = copy_from_user(vendor_info, (void __user*) arg, MAX_VENDOR_NAME_SIZE);
-		sprintf((char *)mag_vendor_info, "%s", (char *)vendor_info);
-		break;
-	case DSPS_IOCTL_WRITE_GYRO_VENDOR_INFO:
-		memset(vendor_info, 0, MAX_VENDOR_NAME_SIZE);
-		ret = copy_from_user(vendor_info, (void __user*) arg, MAX_VENDOR_NAME_SIZE);
-		sprintf((char *)gyro_vendor_info, "%s", (char *)vendor_info);
-		break;
-	case DSPS_IOCTL_WRITE_PROX_LIGHT_VENDOR_INFO:
-		memset(vendor_info, 0, MAX_VENDOR_NAME_SIZE);
-		ret = copy_from_user(vendor_info, (void __user*) arg, MAX_VENDOR_NAME_SIZE);
-		sprintf((char *)prox_light_vendor_info, "%s", (char *)vendor_info);
-		break;
-	case DSPS_IOCTL_WRITE_ACCEL_CHIP_INFO:
-		ret = get_user(accel_chip_info, (u8 __user *) arg);
-		break;
-	case DSPS_IOCTL_WRITE_MAG_CHIP_INFO:
-		ret = get_user(mag_chip_info, (u8 __user *) arg);
-		break;
-	case DSPS_IOCTL_WRITE_GYRO_CHIP_INFO:
-		ret = get_user(gyro_chip_info, (u8 __user *) arg);
-		break;
-	case DSPS_IOCTL_WRITE_PROX_LIGHT_CHIP_INFO:
-		ret = get_user(prox_light_chip_info, (u8 __user *) arg);
-		break;
-	#endif
 	default:
 		ret = -EINVAL;
 		break;
@@ -1102,49 +925,6 @@ static int __devinit dsps_probe(struct platform_device *pdev)
 		       ret);
 		goto ssr_register_err;
 	}
-
-	#ifdef DSPS_DEVINFO
-	accel_dev_info_kobj = kobject_create_and_add("dev_info_g-sensor", NULL);
-	if (accel_dev_info_kobj == NULL) {
-		pr_err("dev_info_g-sensor: Create kobject failed\n");
-	} else {
-		ret = sysfs_create_group(accel_dev_info_kobj, &accel_attr_group);
-		if (ret)
-			pr_err("dev_info_g-sensor: Create accel_attr_group failed\n");
-	}
-
-	gyro_dev_info_kobj = kobject_create_and_add("dev_info_gyro-sensor", NULL);
-	if (gyro_dev_info_kobj == NULL) {
-		pr_info("dev_info_gyro-sensor: Create kobject failed\n");
-	} else {
-		ret = sysfs_create_group(gyro_dev_info_kobj, &gyro_attr_group);
-		if (ret)
-			pr_info("dev_info_gyro-sensor: Create gyro_attr_group failed\n");
-	}
-
-	mag_dev_info_kobj = kobject_create_and_add("dev_info_e-compass", NULL);
-	if (mag_dev_info_kobj == NULL) {
-		pr_info("dev_info_e-compass: Create kobject failed\n");
-	} else {
-		ret = sysfs_create_group(mag_dev_info_kobj, &mag_attr_group);
-		if (ret)
-			pr_info("dev_info_e-compass: Create mag_attr_group failed\n");
-	}
-
-       prox_light_dev_info_kobj = kobject_create_and_add("dev_info_prox_light-sensor", NULL);
-	if (prox_light_dev_info_kobj == NULL) {
-		pr_info("dev_info_prox_light-sensor: Create kobject failed\n");
-	} else {
-		ret = sysfs_create_group(prox_light_dev_info_kobj, &prox_light_attr_group);
-		if (ret)
-			pr_info("dev_info_prox_light-sensor: Create mag_attr_group failed\n");
-	}
-
-	memset(accel_vendor_info, 0, MAX_VENDOR_NAME_SIZE);
-	memset(gyro_vendor_info, 0, MAX_VENDOR_NAME_SIZE);
-	memset(mag_vendor_info, 0, MAX_VENDOR_NAME_SIZE);
-	memset(prox_light_vendor_info, 0, MAX_VENDOR_NAME_SIZE);
-	#endif
 
 	return 0;
 

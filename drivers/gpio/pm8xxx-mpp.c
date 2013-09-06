@@ -23,9 +23,6 @@
 #include <linux/spinlock.h>
 #include <linux/mfd/pm8xxx/core.h>
 #include <linux/mfd/pm8xxx/mpp.h>
-#ifdef CONFIG_ARCH_ACER_MSM8960
-#include <linux/mfd/pm8xxx/pm8921.h>
-#endif
 
 /* MPP Type */
 #define	PM8XXX_MPP_TYPE_MASK		0xE0
@@ -133,71 +130,6 @@ static int pm8xxx_mpp_dir_output(struct gpio_chip *chip,
 	return rc;
 }
 
-#ifdef CONFIG_ARCH_ACER_MSM8960
-struct all_pmic_mpp_regs {
-	u8 ctrl_reg[PM8921_NR_MPPS];
-	u8 state[PM8921_NR_MPPS];
-};
-
-static struct all_pmic_mpp_regs pmic_mpp_sleep_state = {{0}, {0}};
-
-void save_pmic_mpp_sleep_state(void)
-{
-	struct pm8xxx_mpp_chip *mpp_chip;
-	int i;
-
-	mpp_chip = list_first_entry(&pm8xxx_mpp_chips, typeof(*mpp_chip), link);
-
-	for (i = 0; i < mpp_chip->nmpps; i++) {
-		pmic_mpp_sleep_state.ctrl_reg[i] = mpp_chip->ctrl_reg[i];
-		pmic_mpp_sleep_state.state[i] = pm8xxx_mpp_get(&mpp_chip->gpio_chip, i);
-	}
-}
-
-static void pm8xxx_mpp_dbg_show(struct seq_file *s, struct gpio_chip *chip)
-{
-	static const char * const ctype[] = {	"d_in", "d_out", "bi_dir",
-						"a_in", "a_out", "sink",
-						"dtest_sink", "dtest_out"
-	};
-	struct pm8xxx_mpp_chip *mpp_chip = dev_get_drvdata(chip->dev);
-	u8 type, state;
-	const char *label;
-	int i;
-
-	for (i = 0; i < mpp_chip->nmpps; i++) {
-		label = gpiochip_is_requested(chip, i);
-		type = (mpp_chip->ctrl_reg[i] & PM8XXX_MPP_TYPE_MASK) >>
-			PM8XXX_MPP_TYPE_SHIFT;
-		state = pm8xxx_mpp_get(chip, i);
-
-		seq_printf(s, "gpio-%-3d (mpp-%-2d) (%-12.12s) %-10.10s"
-				" %s 0x%02x\n",
-				chip->base + i,
-				i + 1,
-				label ? label : "--",
-				ctype[type],
-				state ? "hi" : "lo",
-				mpp_chip->ctrl_reg[i]);
-	}
-
-	/* for sleep state */
-	for (i = 0; i < mpp_chip->nmpps; i++) {
-		label = gpiochip_is_requested(chip, i);
-		type = (pmic_mpp_sleep_state.ctrl_reg[i] & PM8XXX_MPP_TYPE_MASK) >>
-			PM8XXX_MPP_TYPE_SHIFT;
-		state = pmic_mpp_sleep_state.state[i];
-		seq_printf(s, "sleep gpio-%-3d (mpp-%-2d) (%-12.12s) %-10.10s"
-				" %s 0x%02x\n",
-				chip->base + i,
-				i + 1,
-				label ? label : "--",
-				ctype[type],
-				state ? "hi" : "lo",
-				pmic_mpp_sleep_state.ctrl_reg[i]);
-	}
-}
-#else
 static void pm8xxx_mpp_dbg_show(struct seq_file *s, struct gpio_chip *chip)
 {
 	static const char * const ctype[] = {	"d_in", "d_out", "bi_dir",
@@ -223,7 +155,6 @@ static void pm8xxx_mpp_dbg_show(struct seq_file *s, struct gpio_chip *chip)
 				mpp_chip->ctrl_reg[i]);
 	}
 }
-#endif
 
 int pm8xxx_mpp_config(unsigned mpp, struct pm8xxx_mpp_config_data *config)
 {

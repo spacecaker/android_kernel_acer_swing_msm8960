@@ -59,23 +59,7 @@ static void *dload_mode_addr;
 
 /* Download mode master kill-switch */
 static int dload_set(const char *val, struct kernel_param *kp);
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-#define SILENT_RESET_CRASH_MAGIC_1	0x5352434D /* SRCM */
-#define SILENT_RESET_CRASH_MAGIC_2	0xD4342535
-static int crash_silent_reset = 0;
-module_param_call(crash_silent_reset, NULL, param_get_int,
-                        &crash_silent_reset, 0444);
-
-static int silent_reset_count = 0;
-module_param_call(silent_reset_count, NULL, param_get_int,
-                        &silent_reset_count, 0444);
-
-#endif
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-static int download_mode = 0;
-#else
 static int download_mode = 1;
-#endif
 module_param_call(download_mode, dload_set, param_get_int,
 			&download_mode, 0644);
 
@@ -90,37 +74,12 @@ static struct notifier_block panic_blk = {
 	.notifier_call	= panic_prep_restart,
 };
 
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-static int __init silent_reset_count_setup(char *count)
-{
-	silent_reset_count = simple_strtol(count, NULL, 10);
-	return 1;
-}
-__setup("silent_reset_count=", silent_reset_count_setup);
-
-static int get_dload_mode(void)
-{
-	if (dload_mode_addr) {
-		if (((unsigned int) __raw_readl(dload_mode_addr) == SILENT_RESET_CRASH_MAGIC_1) &&
-			((unsigned int) __raw_readl(dload_mode_addr + sizeof(unsigned int)) == SILENT_RESET_CRASH_MAGIC_2))
-			crash_silent_reset = 1;
-	}
-	return 0;
-}
-#endif
-
 static void set_dload_mode(int on)
 {
 	if (dload_mode_addr) {
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-		__raw_writel(on ? (download_mode? 0xE47B337D:SILENT_RESET_CRASH_MAGIC_1) : 0, dload_mode_addr);
-		__raw_writel(on ? (download_mode? 0xCE14091A:SILENT_RESET_CRASH_MAGIC_2) : 0,
-			dload_mode_addr + sizeof(unsigned int));
-#else
 		__raw_writel(on ? 0xE47B337D : 0, dload_mode_addr);
 		__raw_writel(on ? 0xCE14091A : 0,
-			dload_mode_addr + sizeof(unsigned int));
-#endif
+		       dload_mode_addr + sizeof(unsigned int));
 		mb();
 	}
 }
@@ -147,7 +106,6 @@ static int dload_set(const char *val, struct kernel_param *kp)
 }
 #else
 #define set_dload_mode(x) do {} while (0)
-#define get_dload_mode() do {} while (0)
 #endif
 
 void msm_set_restart_mode(int mode)
@@ -234,13 +192,11 @@ void msm_restart(char mode, const char *cmd)
 	if (restart_mode == RESTART_DLOAD)
 		set_dload_mode(1);
 
-#if !defined(CONFIG_ARCH_ACER_MSM8960)
 	/* Kill download mode if master-kill switch is set */
 	if (!download_mode)
 		set_dload_mode(0);
 #endif
 
-#endif
 	printk(KERN_NOTICE "Going down for restart now\n");
 
 	pm8xxx_reset_pwr_off(1);
@@ -254,12 +210,6 @@ void msm_restart(char mode, const char *cmd)
 			unsigned long code;
 			code = simple_strtoul(cmd + 4, NULL, 16) & 0xff;
 			__raw_writel(0x6f656d00 | code, restart_reason);
-#ifdef CONFIG_ARCH_ACER_MSM8960
-		} else if (!strncmp(cmd, "debug_on", 8)) {
-			__raw_writel(0x776655de, restart_reason);
-		} else if (!strncmp(cmd, "debug_off", 9)) {
-			__raw_writel(0x776655dd, restart_reason);
-#endif
 		} else {
 			__raw_writel(0x77665501, restart_reason);
 		}
@@ -285,18 +235,6 @@ void msm_restart(char mode, const char *cmd)
 static int __init msm_pmic_restart_init(void)
 {
 	int rc;
-
-#ifdef CONFIG_MSM_DLOAD_MODE
-	atomic_notifier_chain_register(&panic_notifier_list, &panic_blk);
-	dload_mode_addr = MSM_IMEM_BASE + DLOAD_MODE_ADDR;
-
-	get_dload_mode();
-	/* Reset detection is switched on below.*/
-	set_dload_mode(download_mode?1:0);
-#endif
-	msm_tmr0_base = msm_timer_get_timer0_base();
-	restart_reason = MSM_IMEM_BASE + RESTART_REASON_ADDR;
-	pm_power_off = msm_power_off;
 
 	if (pmic_reset_irq != 0) {
 		rc = request_any_context_irq(pmic_reset_irq,

@@ -38,38 +38,16 @@ struct msm_spm_device {
 	uint32_t num_modes;
 };
 
-struct msm_spm_vdd_info {
-	uint32_t cpu;
-	uint32_t vlevel;
-	int err;
-};
-
 static struct msm_spm_device msm_spm_l2_device;
 static DEFINE_PER_CPU_SHARED_ALIGNED(struct msm_spm_device, msm_cpu_spm_device);
 
-
-/* Must be called on the same cpu as the one being set to */
-static void msm_spm_smp_set_vdd(void *data)
-{
-	struct msm_spm_device *dev;
-	struct msm_spm_vdd_info *info = (struct msm_spm_vdd_info *)data;
-
-	dev = &per_cpu(msm_cpu_spm_device, info->cpu);
-	info->err = msm_spm_drv_set_vdd(&dev->reg_data, info->vlevel);
-}
-
 int msm_spm_set_vdd(unsigned int cpu, unsigned int vlevel)
 {
-	struct msm_spm_vdd_info info;
-	int ret;
+	struct msm_spm_device *dev;
+	int ret = -EIO;
 
-	info.cpu = cpu;
-	info.vlevel = vlevel;
-
-	/* Set to true to block on vdd change */
-	ret = smp_call_function_single(cpu, msm_spm_smp_set_vdd, &info, true);
-	if (!ret)
-		ret = info.err;
+	dev = &per_cpu(msm_cpu_spm_device, cpu);
+	ret = msm_spm_drv_set_vdd(&dev->reg_data, vlevel);
 
 	return ret;
 }
@@ -168,7 +146,7 @@ int msm_spm_turn_on_cpu_rail(unsigned int cpu)
 	reg = saw_bases[cpu];
 
 	if (cpu_is_msm8960() || cpu_is_msm8930() || cpu_is_msm8930aa() ||
-	    cpu_is_apq8064() || cpu_is_msm8627()) {
+	    cpu_is_apq8064() || cpu_is_msm8627() || cpu_is_apq8064ab()) {
 		val = 0xA4;
 		reg += 0x14;
 		timeout = 512;

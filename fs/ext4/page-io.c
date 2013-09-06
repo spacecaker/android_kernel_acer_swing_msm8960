@@ -287,11 +287,7 @@ static int io_submit_init(struct ext4_io_submit *io,
 {
 	ext4_io_end_t *io_end;
 	struct page *page = bh->b_page;
-#ifdef CONFIG_MACH_ACER_A9
-	int nvecs = bio_get_write_nr_vecs(bh->b_bdev);
-#else
 	int nvecs = bio_get_nr_vecs(bh->b_bdev);
-#endif
 	struct bio *bio;
 
 	io_end = ext4_init_io_end(inode, GFP_NOFS);

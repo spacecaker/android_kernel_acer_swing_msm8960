@@ -74,18 +74,6 @@ static struct kobj_attribute _name##_attr = {	\
 	.store	= _name##_store,		\
 }
 
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-#define power_attr_root(_name) \
-static struct kobj_attribute _name##_attr = {  \
-	.attr   = {                             \
-		.name = __stringify(_name),     \
-		.mode = 0666,                   \
-	},                                      \
-	.show   = _name##_show,                 \
-	.store  = _name##_store,                \
-}
-#endif
-
 /* Preferred image size in bytes (default 500 MB) */
 extern unsigned long image_size;
 /* Size of memory reserved for drivers (default SPARE_PAGES x PAGE_SIZE) */
@@ -187,15 +175,6 @@ extern void swsusp_show_speed(struct timeval *, struct timeval *,
 /* kernel/power/suspend.c */
 extern const char *const pm_states[];
 
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-typedef enum
-{
-	FD_DISABLE = 0,
-	FD_PDP_DEACTIVATE = 1,
-	FD_ENABLE = 2
-} fast_dormancy_level;
-extern fast_dormancy_level fast_dormancy_enabled;
-#endif
 extern bool valid_state(suspend_state_t state);
 extern int suspend_devices_and_enter(suspend_state_t state);
 #else /* !CONFIG_SUSPEND */

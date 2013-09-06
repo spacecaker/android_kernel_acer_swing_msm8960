@@ -320,11 +320,6 @@ late_initcall(pm_debugfs_init);
 
 #endif /* CONFIG_PM_SLEEP */
 
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-int fd_screen_on_delay = 0;
-EXPORT_SYMBOL(fd_screen_on_delay);
-#endif
-
 struct kobject *power_kobj;
 
 /**
@@ -506,31 +501,8 @@ power_attr(wake_lock);
 power_attr(wake_unlock);
 #endif
 
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-static ssize_t fast_dormancy_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%d\n", fast_dormancy_enabled);
-}
-
-static ssize_t fast_dormancy_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t n)
-{
-	int val[2];
-	if (sscanf(buf, "%d %d", &val[0], &val[1]) == 2) {
-		fast_dormancy_enabled = val[0];
-		fd_screen_on_delay = val[1];
-		printk(KERN_INFO "Set dormancy level : %d, screen on delay: %d\n", fast_dormancy_enabled, fd_screen_on_delay);
-		return n;
-	}
-	return -EINVAL;
-}
-power_attr_root(fast_dormancy);
-#endif
-
 static struct attribute *g[] = {
 	&state_attr.attr,
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-	&fast_dormancy_attr.attr,
-#endif
 #ifdef CONFIG_PM_TRACE
 	&pm_trace_attr.attr,
 	&pm_trace_dev_match_attr.attr,

@@ -411,12 +411,19 @@ struct msmsdcc_host {
 	bool sdio_wakeupirq_disabled;
 	struct mutex clk_mutex;
 	bool pending_resume;
-	unsigned int idle_tout_ms;			/* Timeout in msecs */
+	unsigned int idle_tout;			/* Timeout in msecs */
+	bool pending_dpsm_reset;
+	bool enforce_pio_mode;
+	bool print_pm_stats;
 	struct msmsdcc_msm_bus_vote msm_bus_vote;
 	struct device_attribute	max_bus_bw;
 	struct device_attribute	polling;
 	struct device_attribute idle_timeout;
 	struct device_attribute auto_cmd19_attr;
+	struct dentry *debugfs_host_dir;
+	struct dentry *debugfs_idle_tout;
+	struct dentry *debugfs_pio_mode;
+	struct dentry *debugfs_pm_stats;
 };
 
 #define MSMSDCC_VERSION_MASK	0xFFFF

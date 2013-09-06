@@ -971,19 +971,8 @@ __be32 inet_select_addr(const struct net_device *dev, __be32 dst, int scope)
 {
 	__be32 addr = 0;
 	struct in_device *in_dev;
-	struct net *net;
+	struct net *net = dev_net(dev);
 
-	if (!dev) {
-		pr_err("dev NULL");
-		dump_stack();
-		return 0;
-	}
-	if (!dev->ip_ptr) {
-		pr_err("dev ip_ptr NULL");
-		dump_stack();
-		return 0;
-	}
-	net = dev_net(dev);
 	rcu_read_lock();
 	in_dev = __in_dev_get_rcu(dev);
 	if (!in_dev)

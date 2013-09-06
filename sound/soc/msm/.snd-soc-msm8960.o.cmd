@@ -1,1 +1,0 @@
-cmd_sound/soc/msm/snd-soc-msm8960.o := /home/robin/android/PAC/prebuilt/linux-x86/toolchain/arm-eabi-4.4.3/bin/arm-eabi-ld -EL    -r -o sound/soc/msm/snd-soc-msm8960.o sound/soc/msm/msm8960-acer-a9.o 

@@ -156,15 +156,8 @@ static void smd_tty_read(unsigned long param)
 			*/
 			printk(KERN_ERR "OOPS - smd_tty_buffer mismatch?!");
 		}
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-		if(tty->index != 11) {
-			wake_lock_timeout(&info->wake_lock, HZ / 2);
-		} else {
-			wake_unlock(&info->wake_lock);
-		}
-#else
+
 		wake_lock_timeout(&info->wake_lock, HZ / 2);
-#endif
 		tty_flip_buffer_push(tty);
 	}
 
@@ -374,10 +367,7 @@ static int smd_tty_write(struct tty_struct *tty, const unsigned char *buf, int l
 {
 	struct smd_tty_info *info = tty->driver_data;
 	int avail;
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-	if(tty->index == 11)
-		wake_lock(&info->wake_lock);
-#endif
+
 	/* if we're writing to a packet channel we will
 	** never be able to write more data than there
 	** is currently space for

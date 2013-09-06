@@ -10,6 +10,8 @@
  * GNU General Public License for more details.
  *
  */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 
 #include <linux/module.h>
 #include <linux/platform_device.h>

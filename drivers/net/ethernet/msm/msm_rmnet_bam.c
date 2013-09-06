@@ -84,17 +84,7 @@ struct rmnet_private {
 	u32 operation_mode; /* IOCTL specified mode (protocol, QoS header) */
 	uint8_t device_up;
 	uint8_t in_reset;
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-	struct delayed_work fast_dormancy_work;
-#endif
 };
-
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-static struct rmnet_private *fast_dormancy_rmnet;
-void kernel_enter_fast_dormancy(void);
-int kernel_is_in_earlysuspend(void);
-extern int fd_screen_on_delay;
-#endif
 
 #ifdef CONFIG_MSM_RMNET_DEBUG
 static unsigned long timeout_us;
@@ -343,16 +333,6 @@ static void bam_write_done(void *dev, struct sk_buff *skb)
 		p->wakeups_xmit += rmnet_cause_wakeup(p);
 #endif
 	}
-
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-	cancel_delayed_work_sync(&fast_dormancy_rmnet->fast_dormancy_work);
-	if (kernel_is_in_earlysuspend())
-		schedule_delayed_work(&fast_dormancy_rmnet->fast_dormancy_work, msecs_to_jiffies(3000));
-	else if (fd_screen_on_delay != 0) {
-		schedule_delayed_work(&fast_dormancy_rmnet->fast_dormancy_work, msecs_to_jiffies(fd_screen_on_delay*1000));
-	}
-#endif
-
 	DBG1("[%s] Tx packet #%lu len=%d mark=0x%x\n",
 	    ((struct net_device *)(dev))->name, p->stats.tx_packets,
 	    skb->len, skb->mark);
@@ -705,13 +685,6 @@ static void __init rmnet_setup(struct net_device *dev)
 	dev->watchdog_timeo = 1000; /* 10 seconds? */
 }
 
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-static void msm_rmnet_fast_dormancy_work_f(struct work_struct *work)
-{
-	kernel_enter_fast_dormancy();
-}
-#endif
-
 static struct net_device *netdevs[RMNET_DEVICE_COUNT];
 static struct platform_driver bam_rmnet_drivers[RMNET_DEVICE_COUNT];
 
@@ -843,14 +816,6 @@ static int __init rmnet_init(void)
 					__func__, n, ret);
 			return ret;
 		}
-
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-		if (n == 0) {
-			fast_dormancy_rmnet = p;
-			INIT_DELAYED_WORK(&fast_dormancy_rmnet->fast_dormancy_work,
-				msm_rmnet_fast_dormancy_work_f);
-		}
-#endif
 	}
 	return 0;
 }

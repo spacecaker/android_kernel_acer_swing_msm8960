@@ -49,6 +49,9 @@
  * - GET_STATUS(device) - always reports 0
  * - Gadget API (majority of optional features)
  */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+
 #include <linux/delay.h>
 #include <linux/device.h>
 #include <linux/dmapool.h>

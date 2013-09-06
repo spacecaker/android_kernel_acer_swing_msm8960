@@ -1492,11 +1492,6 @@ static int do_start_stop(struct fsg_common *common)
 	struct fsg_lun	*curlun = common->curlun;
 	int		loej, start;
 
-#if defined(CONFIG_MACH_ACER_A9)
-/* Disable CDROM eject function */
-	return 0;
-#endif
-
 	if (!curlun) {
 		return -EINVAL;
 	} else if (!curlun->removable) {

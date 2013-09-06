@@ -107,15 +107,6 @@ static ssize_t queue_max_sectors_show(struct request_queue *q, char *page)
 	return queue_var_show(max_sectors_kb, (page));
 }
 
-#ifdef CONFIG_MACH_ACER_A9
-static ssize_t queue_max_write_sectors_show(struct request_queue *q, char *page)
-{
-	int max_write_sectors_kb = queue_max_write_sectors(q) >> 1;
-
-	return queue_var_show(max_write_sectors_kb, (page));
-}
-#endif
-
 static ssize_t queue_max_segments_show(struct request_queue *q, char *page)
 {
 	return queue_var_show(queue_max_segments(q), (page));
@@ -187,28 +178,6 @@ queue_max_sectors_store(struct request_queue *q, const char *page, size_t count)
 
 	return ret;
 }
-
-#ifdef CONFIG_MACH_ACER_A9
-static ssize_t
-queue_max_write_sectors_store(struct request_queue *q, const char *page,
-								size_t count)
-{
-	unsigned long max_write_sectors_kb,
-		max_hw_sectors_kb = queue_max_hw_sectors(q) >> 1,
-			page_kb = 1 << (PAGE_CACHE_SHIFT - 10);
-	ssize_t ret = queue_var_store(&max_write_sectors_kb, page, count);
-
-	if (max_write_sectors_kb > max_hw_sectors_kb
-		|| max_write_sectors_kb < page_kb)
-		return -EINVAL;
-
-	spin_lock_irq(q->queue_lock);
-	q->limits.max_write_sectors = max_write_sectors_kb << 1;
-	spin_unlock_irq(q->queue_lock);
-
-	return ret;
-}
-#endif
 
 static ssize_t queue_max_hw_sectors_show(struct request_queue *q, char *page)
 {
@@ -322,14 +291,6 @@ static struct queue_sysfs_entry queue_max_sectors_entry = {
 	.store = queue_max_sectors_store,
 };
 
-#ifdef CONFIG_MACH_ACER_A9
-static struct queue_sysfs_entry queue_max_write_sectors_entry = {
-	.attr = {.name = "max_write_sectors_kb", .mode = S_IRUGO | S_IWUSR },
-	.show = queue_max_write_sectors_show,
-	.store = queue_max_write_sectors_store,
-};
-#endif
-
 static struct queue_sysfs_entry queue_max_hw_sectors_entry = {
 	.attr = {.name = "max_hw_sectors_kb", .mode = S_IRUGO },
 	.show = queue_max_hw_sectors_show,
@@ -431,9 +392,6 @@ static struct attribute *default_attrs[] = {
 	&queue_ra_entry.attr,
 	&queue_max_hw_sectors_entry.attr,
 	&queue_max_sectors_entry.attr,
-#ifdef CONFIG_MACH_ACER_A9
-	&queue_max_write_sectors_entry.attr,
-#endif
 	&queue_max_segments_entry.attr,
 	&queue_max_integrity_segments_entry.attr,
 	&queue_max_segment_size_entry.attr,

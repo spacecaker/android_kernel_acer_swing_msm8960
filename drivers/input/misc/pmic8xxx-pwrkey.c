@@ -26,13 +26,7 @@
 #define PON_CNTL_1 0x1C
 #define PON_CNTL_PULL_UP BIT(7)
 #define PON_CNTL_TRIG_DELAY_MASK (0x7)
-#ifdef CONFIG_ARCH_ACER_MSM8960
-static int wakeup_by_powerkey = 0;
-int is_wakeup_by_powerkey(void)
-{
-	return wakeup_by_powerkey;
-}
-#endif
+
 /**
  * struct pmic8xxx_pwrkey - pmic8xxx pwrkey information
  * @key_press_irq: key press irq number
@@ -50,12 +44,6 @@ static irqreturn_t pwrkey_press_irq(int irq, void *_pwrkey)
 {
 	struct pmic8xxx_pwrkey *pwrkey = _pwrkey;
 
-#ifdef CONFIG_ARCH_ACER_MSM8960
-	pr_info("%s: button->code = %d, state = 1\n", __func__, KEY_POWER);
-
-	if (!wakeup_by_powerkey)
-		wakeup_by_powerkey = 1;
-#endif
 	if (pwrkey->press == true) {
 		pwrkey->press = false;
 		return IRQ_HANDLED;
@@ -73,12 +61,10 @@ static irqreturn_t pwrkey_release_irq(int irq, void *_pwrkey)
 {
 	struct pmic8xxx_pwrkey *pwrkey = _pwrkey;
 
-#ifdef CONFIG_ARCH_ACER_MSM8960
-	pr_info("%s: button->code = %d, state = 0\n", __func__, KEY_POWER);
-#endif
 	if (pwrkey->press == false) {
 		input_report_key(pwrkey->pwr, KEY_POWER, 1);
 		input_sync(pwrkey->pwr);
+		pwrkey->press = true;
 	} else {
 		pwrkey->press = false;
 	}
@@ -93,9 +79,7 @@ static irqreturn_t pwrkey_release_irq(int irq, void *_pwrkey)
 static int pmic8xxx_pwrkey_suspend(struct device *dev)
 {
 	struct pmic8xxx_pwrkey *pwrkey = dev_get_drvdata(dev);
-#ifdef CONFIG_ARCH_ACER_MSM8960
-	wakeup_by_powerkey = 0;
-#endif
+
 	if (device_may_wakeup(dev)) {
 		enable_irq_wake(pwrkey->key_press_irq);
 		enable_irq_wake(pwrkey->key_release_irq);

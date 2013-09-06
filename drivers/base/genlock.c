@@ -298,22 +298,6 @@ done:
 	return ret;
 }
 
-#ifdef CONFIG_MACH_ACER_A9
-void fix_lock_list_tail(struct list_head *head)
-{
-	struct list_head *cur;
-
-	cur = head;
-	while ((cur->next) && (cur->next != head)) {
-		cur = cur->next;
-	}
-
-	head->prev = cur;
-	cur->next = head;
-	pr_info("%s:fix lost tail list", __func__);
-}
-#endif
-
 /* Attempt to acquire the lock for the handle */
 
 static int _genlock_lock(struct genlock *lock, struct genlock_handle *handle,
@@ -437,10 +421,6 @@ static int _genlock_lock(struct genlock *lock, struct genlock_handle *handle,
 	}
 
 dolock:
-#ifdef CONFIG_MACH_ACER_A9
-	if (!lock->active.prev)
-		fix_lock_list_tail(&lock->active);
-#endif
 	/* We can now get the lock, add ourselves to the list of owners */
 
 	list_add_tail(&handle->entry, &lock->active);

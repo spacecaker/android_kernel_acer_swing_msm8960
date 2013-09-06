@@ -79,7 +79,3 @@ obj-$(CONFIG_TOUCHSCREEN_TPS6507X)	+= tps6507x-ts.o
 obj-$(CONFIG_TOUCHSCREEN_MSM_LEGACY)		+= msm_touch.o
 obj-$(CONFIG_TOUCHSCREEN_CY8C_TS)	+= cy8c_ts.o
 obj-$(CONFIG_TOUCHSCREEN_CYTTSP_I2C_QC)       += cyttsp-i2c-qc.o
-obj-$(CONFIG_TOUCHSCREEN_CYPRESS)	+= cypress_ts.o
-obj-$(CONFIG_TOUCHSCREEN_CYPRESS_ISSP)	+= issp/
-obj-$(CONFIG_TOUCHSCREEN_CYPRESS_CYTTSP4)	+= cyttsp4/
-obj-$(CONFIG_ACER_INPUT)	+= acer_input.o

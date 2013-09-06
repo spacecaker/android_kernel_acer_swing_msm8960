@@ -148,6 +148,8 @@ int msm_isp_vfe_msg_to_img_mode(struct msm_cam_media_controller *pmctl,
 			image_mode = MSM_V4L2_EXT_CAPTURE_MODE_RDI1;
 		else
 			image_mode = -1;
+	} else if (VFE_MSG_V2X_LIVESHOT_PRIMARY == vfe_msg) {
+			image_mode = MSM_V4L2_EXT_CAPTURE_MODE_V2X_LIVESHOT;
 	} else
 		image_mode = -1;
 
@@ -760,8 +762,13 @@ static int msm_isp_config(struct msm_cam_media_controller *pmctl,
 
 	int rc = -EINVAL;
 	void __user *argp = (void __user *)arg;
-	struct v4l2_subdev *sd = pmctl->isp_sdev->sd;
+	struct v4l2_subdev *sd;
 
+	if (!pmctl->isp_sdev->sd) {
+		pr_err("%s vfe subdev is NULL\n", __func__);
+		return -ENXIO;
+	}
+	sd = pmctl->isp_sdev->sd;
 	D("%s: cmd %d\n", __func__, _IOC_NR(cmd));
 	switch (cmd) {
 	case MSM_CAM_IOCTL_PICT_PP_DONE:

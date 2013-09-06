@@ -21,10 +21,6 @@
 #include <linux/module.h>
 #include <linux/debugfs.h>
 
-#include <linux/fs.h>
-#include <linux/miscdevice.h>
-#include <linux/uaccess.h>
-
 #include <mach/irqs.h>
 #include <mach/scm.h>
 #include <mach/peripheral-loader.h>
@@ -37,9 +33,6 @@
 #include "modem_notifier.h"
 #include "ramdump.h"
 
-#if defined(CONFIG_MACH_ACER_A9)
-#include <mach/smem_a9.h>
-#endif
 static int crash_shutdown;
 
 #define MAX_SSR_REASON_LEN 81U
@@ -284,101 +277,6 @@ static int modem_debugfs_init(void)
 	return 0;
 }
 
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-static ssize_t
-a9_reset_modem(struct file *filp, const char __user *buf,
-        size_t count, loff_t *pos)
-{
-	unsigned char cmd[16];
-	int len = count;
-	int val = 0;
-	printk("%s():\n", __FUNCTION__);
-
-	if (get_restart_level() != 3) {
-		printk("%s(): restart level != 3, abort!\n", __func__);
-		return -EFAULT;
-	}
-	if (count > 15)
-		return -EFAULT;
-
-	if(copy_from_user(cmd, buf, len))
-		return -EFAULT;
-
-	cmd[len] = 0;
-	if (cmd[len-1] == '\n') {
-		cmd[len-1] = 0;
-		len--;
-	}
-	val = simple_strtol(cmd, NULL, 10);
-	if(val == 1) {
-		printk("%s(): value = 1, reset modem!\n", __func__);
-		subsystem_restart("modem");
-	} else {
-		printk("%s(), value = %d, not support!\n", __func__, val);
-		return -EFAULT;
-	}
-
-	return count;
-}
-
-static const struct file_operations a9_reset_modem_fops = {
-	.owner                = THIS_MODULE,
-	.write                = a9_reset_modem,
-};
-
-static struct miscdevice a9_reset_modem_dev = {
-	.minor = MISC_DYNAMIC_MINOR,
-	.name = "a9_reset_modem",
-	.fops = &a9_reset_modem_fops,
-};
-
-static ssize_t modem_silent_reset_count_read(struct file *fp, char __user *buf,
-                        size_t count, loff_t *pos)
-{
-	char buffer[64] = {0};
-	int total = 0;
-	unsigned int size = 0;
-	void *smem_ptr = NULL;
-	acer_smem_info_type *acer_smem_info = NULL;
-
-	smem_ptr = smem_get_entry(SMEM_ID_VENDOR0, &size);
-	if (size <= 0 || smem_ptr == NULL) {
-		pr_err("%s: Error - cannot get smem!!!\n", __func__);
-		return -EFAULT;
-	}
-	acer_smem_info = (acer_smem_info_type*) smem_ptr;
-
-	total = snprintf(buffer, sizeof(buffer), "%d\n", acer_smem_info->modem_err_counter);
-	if (total <= 0) {
-		pr_err("%s: Error - reading!\n", __func__);
-		return -EFAULT;
-	}
-	if (*pos >= total) {
-		return 0;
-	}
-	if(copy_to_user(buf, buffer + (unsigned int) *pos, total)) {
-		pr_info("%s: Error - reading!!\n", __func__);
-		return -EFAULT;
-	}
-	*pos += total;
-
-	return total;
-}
-
-static const struct file_operations modem_silent_reset_fops = {
-	.owner               = THIS_MODULE,
-	.read                = modem_silent_reset_count_read,
-};
-
-static struct miscdevice a9_modem_silent_reset_count_dev = {
-	.minor = MISC_DYNAMIC_MINOR,
-	.name = "a9_modem_silent_reset_count",
-	.fops = &modem_silent_reset_fops,
-};
-
-
-#endif
-
 static int __init modem_8960_init(void)
 {
 	int ret;
@@ -449,11 +347,6 @@ static int __init modem_8960_init(void)
 	}
 
 	ret = modem_debugfs_init();
-
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-	misc_register(&a9_reset_modem_dev);
-	misc_register(&a9_modem_silent_reset_count_dev);
-#endif
 
 	pr_info("%s: modem fatal driver init'ed.\n", __func__);
 out:

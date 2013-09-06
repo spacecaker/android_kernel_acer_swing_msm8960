@@ -26,9 +26,6 @@
 #include <linux/seq_file.h>
 #include <linux/slab.h>
 #include <linux/spinlock.h>
-#ifdef CONFIG_ARCH_ACER_MSM8960
-#include <linux/mfd/pm8xxx/pm8921.h>
-#endif
 
 /* GPIO registers */
 #define	SSBI_REG_ADDR_GPIO_BASE		0x150
@@ -239,94 +236,6 @@ static int pm_gpio_direction_output(struct gpio_chip *gpio_chip,
 	return ret;
 }
 
-#ifdef CONFIG_ARCH_ACER_MSM8960
-struct all_pmic_gpio_regs {
-	u8 bank[PM8921_NR_GPIOS][PM_GPIO_BANKS];
-	u8 state[PM8921_NR_GPIOS];
-};
-
-static struct all_pmic_gpio_regs pmic_gpio_sleep_state = {{{0},{0}}, {0}};
-
-void save_pmic_gpio_sleep_state(void)
-{
-	struct pm_gpio_chip *pm_gpio_chip;
-	struct gpio_chip *gpio_chip;
-	u8 bank;
-	int i, j;
-
-	pm_gpio_chip = list_first_entry(&pm_gpio_chips, typeof(*pm_gpio_chip), link);
-	gpio_chip = &pm_gpio_chip->gpio_chip;
-
-	for (i = 0; i < gpio_chip->ngpio; i++) {
-		for (j = 0; j < PM_GPIO_BANKS; j++) {
-			bank = j << PM_GPIO_BANK_SHIFT;
-			pm8xxx_writeb(gpio_chip->dev->parent,
-					SSBI_REG_ADDR_GPIO(i),
-					bank);
-			pm8xxx_readb(gpio_chip->dev->parent,
-					SSBI_REG_ADDR_GPIO(i),
-					&bank);
-			pmic_gpio_sleep_state.bank[i][j] = bank;
-		}
-		pmic_gpio_sleep_state.state[i] = pm_gpio_get(pm_gpio_chip, i);
-	}
-}
-
-static void pm_gpio_dbg_show(struct seq_file *s, struct gpio_chip *gpio_chip)
-{
-	static const char * const cmode[] = { "in", "in/out", "out", "off" };
-	struct pm_gpio_chip *pm_gpio_chip = dev_get_drvdata(gpio_chip->dev);
-	u8 mode, state, bank;
-	const char *label;
-	int i, j;
-
-	for (i = 0; i < gpio_chip->ngpio; i++) {
-		label = gpiochip_is_requested(gpio_chip, i);
-		mode = (pm_gpio_chip->bank1[i] & PM_GPIO_MODE_MASK) >>
-			PM_GPIO_MODE_SHIFT;
-		state = pm_gpio_get(pm_gpio_chip, i);
-
-		seq_printf(s, "gpio-%-3d (pm-gpio-%-2d) (%-12.12s) %-10.10s"
-				" %s",
-				gpio_chip->base + i,
-				i + 1,
-				label ? label : "--",
-				cmode[mode],
-				state ? "hi" : "lo");
-
-		for (j = 0; j < PM_GPIO_BANKS; j++) {
-			bank = j << PM_GPIO_BANK_SHIFT;
-			pm8xxx_writeb(gpio_chip->dev->parent,
-					SSBI_REG_ADDR_GPIO(i),
-					bank);
-			pm8xxx_readb(gpio_chip->dev->parent,
-					SSBI_REG_ADDR_GPIO(i),
-					&bank);
-			seq_printf(s, " 0x%02x", bank);
-		}
-		seq_printf(s, "\n");
-	}
-
-	/* for sleep state */
-	for (i = 0; i < gpio_chip->ngpio; i++) {
-		label = gpiochip_is_requested(gpio_chip, i);
-		mode = (pmic_gpio_sleep_state.bank[i][1] & PM_GPIO_MODE_MASK) >>
-			PM_GPIO_MODE_SHIFT;
-		state = pmic_gpio_sleep_state.state[i];
-		seq_printf(s, "sleep gpio-%-3d (pm-gpio-%-2d) (%-12.12s) %-10.10s"
-				" %s",
-				gpio_chip->base + i,
-				i + 1,
-				label ? label : "--",
-				cmode[mode],
-				state ? "hi" : "lo");
-		for (j = 0; j < PM_GPIO_BANKS; j++) {
-			seq_printf(s, " 0x%02x", pmic_gpio_sleep_state.bank[i][j]);
-		}
-		seq_printf(s, "\n");
-	}
-}
-#else
 static void pm_gpio_dbg_show(struct seq_file *s, struct gpio_chip *gpio_chip)
 {
 	static const char * const cmode[] = { "in", "in/out", "out", "off" };
@@ -359,7 +268,6 @@ static void pm_gpio_dbg_show(struct seq_file *s, struct gpio_chip *gpio_chip)
 		seq_printf(s, "\n");
 	}
 }
-#endif
 
 static int __devinit pm_gpio_probe(struct platform_device *pdev)
 {

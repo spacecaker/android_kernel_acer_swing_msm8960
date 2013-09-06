@@ -116,6 +116,7 @@ static struct l2_level l2_freq_tbl[] __initdata = {
 	[8]  = { {  883200, HFPLL, 1, 0,  46 }, LVL_NOM, 1050000, 4 },
 	[9]  = { {  960000, HFPLL, 1, 0,  50 }, LVL_NOM, 1050000, 4 },
 	[10] = { { 1036800, HFPLL, 1, 0,  54 }, LVL_NOM, 1050000, 4 },
+	{ }
 };
 
 static struct acpu_level acpu_freq_tbl[] __initdata = {
@@ -133,10 +134,10 @@ static struct acpu_level acpu_freq_tbl[] __initdata = {
 	{ 0, { 0 } }
 };
 
-static struct pvs_table pvs_tables[NUM_PVS]  __initdata = {
-	[PVS_SLOW]    = { acpu_freq_tbl, sizeof(acpu_freq_tbl) },
-	[PVS_NOMINAL] = { acpu_freq_tbl, sizeof(acpu_freq_tbl)  },
-	[PVS_FAST]    = { acpu_freq_tbl, sizeof(acpu_freq_tbl) },
+static struct pvs_table pvs_tables[NUM_SPEED_BINS][NUM_PVS]  __initdata = {
+	[0][PVS_SLOW]    = { acpu_freq_tbl, sizeof(acpu_freq_tbl) },
+	[0][PVS_NOMINAL] = { acpu_freq_tbl, sizeof(acpu_freq_tbl)  },
+	[0][PVS_FAST]    = { acpu_freq_tbl, sizeof(acpu_freq_tbl) },
 };
 
 static struct acpuclk_krait_params acpuclk_8974_params __initdata = {
@@ -147,7 +148,7 @@ static struct acpuclk_krait_params acpuclk_8974_params __initdata = {
 	.l2_freq_tbl = l2_freq_tbl,
 	.l2_freq_tbl_size = sizeof(l2_freq_tbl),
 	.bus_scale = &bus_scale_data,
-	.qfprom_phys_base = 0xFC4A8000,
+	.pte_efuse_phys = 0xFC4B80B0,
 	.stby_khz = 300000,
 };
 

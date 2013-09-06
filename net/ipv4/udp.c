@@ -1679,9 +1679,6 @@ int __udp4_lib_rcv(struct sk_buff *skb, struct udp_table *udptable,
 	UDP_INC_STATS_BH(net, UDP_MIB_NOPORTS, proto == IPPROTO_UDPLITE);
 	icmp_send(skb, ICMP_DEST_UNREACH, ICMP_PORT_UNREACH, 0);
 
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-	NET_INC_STATS_BH(net, LINUX_MIB_TCPRESET);
-#endif
 	/*
 	 * Hmm.  We got an UDP packet to a port to which we
 	 * don't wanna listen.  Ignore it.

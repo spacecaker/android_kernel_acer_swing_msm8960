@@ -31,7 +31,6 @@
 #define PN544_RETRIES		10
 #define PN544_MAX_I2C_TRANSFER	0x0400
 #define PN544_MSG_MAX_SIZE	0x21 /* at normal HCI mode */
-#define PN544_MAX_BUFFER_SIZE	512
 
 /* ioctl */
 #define PN544_CHAR_BASE		'P'
@@ -41,8 +40,6 @@
 #define PN544_SET_FW_MODE	PN544_IOW(2, unsigned int)
 #define PN544_GET_DEBUG		PN544_IOW(3, unsigned int)
 #define PN544_SET_DEBUG		PN544_IOW(4, unsigned int)
-#define PN544_SET_PWR		PN544_IOW(5, unsigned int)
-#define PN544_GET_SH_VERSION	PN544_IOW(6, unsigned char**)
 
 /* Timing restrictions (ms) */
 #define PN544_RESETVEN_TIME	30 /* 7 */
@@ -94,7 +91,6 @@ struct pn544_nfc_platform_data {
 	void (*enable) (int fw);
 	int (*test) (void);
 	void (*disable) (void);
-	int irq_gpio;
 };
 #endif /* __KERNEL__ */
 

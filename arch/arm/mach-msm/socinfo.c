@@ -280,6 +280,9 @@ static enum msm_cpu cpu_of_id[] = {
 	[143] = MSM_CPU_8930AA,
 	[144] = MSM_CPU_8930AA,
 
+	/* 8064AB IDs */
+	[153] = MSM_CPU_8064AB,
+
 	/* Uninitialized IDs are not known to run Linux.
 	   MSM_CPU_UNKNOWN is set to 0 to ensure these IDs are
 	   considered as unknown CPU. */
@@ -883,10 +886,6 @@ const int read_msm_cpu_type(void)
 
 	case 0x510F06F0:
 		return MSM_CPU_8064;
-
-	case 0x511F06F1:
-	case 0x512F06F0:
-		return MSM_CPU_8974;
 
 	default:
 		return MSM_CPU_UNKNOWN;

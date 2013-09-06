@@ -1103,10 +1103,6 @@ static int mass_storage_function_init(struct android_usb_function *f,
 	}
 
 	config->fsg.luns[0].removable = 1;
-#if defined(CONFIG_MACH_ACER_A9)
-/* lun0 will be emulated to CDROM function */
-	config->fsg.luns[0].cdrom = 1;
-#endif
 
 	common = fsg_common_init(NULL, cdev, &config->fsg);
 	if (IS_ERR(common)) {

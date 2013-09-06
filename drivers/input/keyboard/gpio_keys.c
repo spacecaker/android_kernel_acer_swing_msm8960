@@ -346,11 +346,6 @@ static void gpio_keys_gpio_work_func(struct work_struct *work)
 		container_of(work, struct gpio_button_data, work);
 
 	gpio_keys_gpio_report_event(bdata);
-
-#ifdef CONFIG_ARCH_ACER_MSM8960
-	pr_info("%s: code = %d, gpio = %d, state = %d\n", __func__, bdata->button->code, bdata->button->gpio,
-		!!((gpio_get_value_cansleep(bdata->button->gpio) ? 1 : 0) ^ bdata->button->active_low));
-#endif
 }
 
 static void gpio_keys_gpio_timer(unsigned long _data)

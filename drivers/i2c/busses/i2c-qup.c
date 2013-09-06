@@ -328,12 +328,14 @@ qup_i2c_pwr_mgmt(struct qup_i2c_dev *dev, unsigned int state)
 	dev->clk_state = state;
 	if (state != 0) {
 		clk_enable(dev->clk);
-		clk_enable(dev->pclk);
+		if (!dev->pdata->keep_ahb_clk_on)
+			clk_enable(dev->pclk);
 	} else {
 		qup_update_state(dev, QUP_RESET_STATE);
 		clk_disable(dev->clk);
 		qup_config_core_on_en(dev);
-		clk_disable(dev->pclk);
+		if (!dev->pdata->keep_ahb_clk_on)
+			clk_disable(dev->pclk);
 	}
 }
 
@@ -692,13 +694,6 @@ static void qup_i2c_recover_bus_busy(struct qup_i2c_dev *dev)
 		return;
 	}
 
-#ifdef CONFIG_MACH_ACER_A9
-	if (qup_i2c_request_gpios(dev)) {
-		dev_err(dev->dev, "Recovery failed due to request GPIO failed\n");
-		return;
-	}
-#endif
-
 	disable_irq(dev->err_irq);
 	for (i = 0; i < ARRAY_SIZE(i2c_rsrcs); ++i) {
 		if (msm_gpiomux_write(dev->i2c_gpios[i], GPIOMUX_ACTIVE,
@@ -749,9 +744,6 @@ static void qup_i2c_recover_bus_busy(struct qup_i2c_dev *dev)
 
 recovery_end:
 	enable_irq(dev->err_irq);
-#ifdef CONFIG_MACH_ACER_A9
-	qup_i2c_free_gpios(dev);
-#endif
 }
 
 static int
@@ -1246,11 +1238,9 @@ blsp_core_init:
 		dev->i2c_gpios[i] = res ? res->start : -1;
 	}
 
-#ifndef CONFIG_MACH_ACER_A9
 	ret = qup_i2c_request_gpios(dev);
 	if (ret)
 		goto err_request_gpio_failed;
-#endif
 
 	platform_set_drvdata(pdev, dev);
 
@@ -1337,6 +1327,12 @@ blsp_core_init:
 	dev->clk_state = 0;
 	clk_prepare(dev->clk);
 	clk_prepare(dev->pclk);
+	/* If the same AHB clock is used on Modem side
+	 * switch it on here itself and don't switch it
+	 * on and off during suspend and resume.
+	 */
+	if (dev->pdata->keep_ahb_clk_on)
+		clk_enable(dev->pclk);
 	setup_timer(&dev->pwr_timer, qup_i2c_pwr_timer, (unsigned long) dev);
 
 	pm_runtime_set_active(&pdev->dev);
@@ -1364,9 +1360,7 @@ err_request_irq_failed:
 err_reset_failed:
 	clk_disable_unprepare(dev->clk);
 	clk_disable_unprepare(dev->pclk);
-#ifndef CONFIG_MACH_ACER_A9
 err_request_gpio_failed:
-#endif
 err_gsbi_failed:
 	iounmap(dev->base);
 err_ioremap_failed:
@@ -1408,9 +1402,11 @@ qup_i2c_remove(struct platform_device *pdev)
 	free_irq(dev->err_irq, dev);
 	i2c_del_adapter(&dev->adapter);
 	clk_unprepare(dev->clk);
-	clk_unprepare(dev->pclk);
+	if (!dev->pdata->keep_ahb_clk_on) {
+		clk_unprepare(dev->pclk);
+		clk_put(dev->pclk);
+	}
 	clk_put(dev->clk);
-	clk_put(dev->pclk);
 	qup_i2c_free_gpios(dev);
 	if (dev->gsbi)
 		iounmap(dev->gsbi);
@@ -1446,10 +1442,9 @@ static int qup_i2c_suspend(struct device *device)
 	if (dev->clk_state != 0)
 		qup_i2c_pwr_mgmt(dev, 0);
 	clk_unprepare(dev->clk);
-	clk_unprepare(dev->pclk);
-#ifndef CONFIG_MACH_ACER_A9
+	if (!dev->pdata->keep_ahb_clk_on)
+		clk_unprepare(dev->pclk);
 	qup_i2c_free_gpios(dev);
-#endif
 	return 0;
 }
 
@@ -1457,11 +1452,10 @@ static int qup_i2c_resume(struct device *device)
 {
 	struct platform_device *pdev = to_platform_device(device);
 	struct qup_i2c_dev *dev = platform_get_drvdata(pdev);
-#ifndef CONFIG_MACH_ACER_A9
 	BUG_ON(qup_i2c_request_gpios(dev) != 0);
-#endif
 	clk_prepare(dev->clk);
-	clk_prepare(dev->pclk);
+	if (!dev->pdata->keep_ahb_clk_on)
+		clk_prepare(dev->pclk);
 	dev->suspended = 0;
 	return 0;
 }

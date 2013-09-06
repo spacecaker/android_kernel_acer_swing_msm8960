@@ -271,12 +271,6 @@ int mmc_init_queue(struct mmc_queue *mq, struct mmc_card *card,
 		blk_queue_bounce_limit(mq->queue, limit);
 		blk_queue_max_hw_sectors(mq->queue,
 			min(host->max_blk_count, host->max_req_size / 512));
-#ifdef CONFIG_MACH_ACER_A9
-		if (mmc_card_mmc(card)) {
-			/* Increase max write sectors from 512KB to 8192KB */
-			blk_queue_max_write_sectors(mq->queue, 16384);
-		}
-#endif
 		blk_queue_max_segments(mq->queue, host->max_segs);
 		blk_queue_max_segment_size(mq->queue, host->max_seg_size);
 

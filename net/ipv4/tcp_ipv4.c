@@ -1759,11 +1759,6 @@ bad_packet:
 		TCP_INC_STATS_BH(net, TCP_MIB_INERRS);
 	} else {
 		tcp_v4_send_reset(NULL, skb);
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-        if (th->syn == 1) {
-			NET_INC_STATS_BH(net, LINUX_MIB_TCPRESET);
-		}
-#endif
 	}
 
 discard_it:

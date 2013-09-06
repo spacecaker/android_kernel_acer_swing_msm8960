@@ -16,6 +16,7 @@
 #include <linux/err.h>
 #include <linux/platform_device.h>
 #include <linux/sched.h>
+#include <linux/ratelimit.h>
 #include <linux/workqueue.h>
 #include <linux/pm_runtime.h>
 #include <linux/diagchar.h>
@@ -132,9 +133,9 @@ int chk_config_get_id(void)
 		case MSM_CPU_8X60:
 			return APQ8060_TOOLS_ID;
 		case MSM_CPU_8960:
-		case MSM_CPU_8960AB:
 			return AO8960_TOOLS_ID;
 		case MSM_CPU_8064:
+		case MSM_CPU_8064AB:
 			return APQ8064_TOOLS_ID;
 		case MSM_CPU_8930:
 		case MSM_CPU_8930AA:
@@ -160,8 +161,8 @@ int chk_apps_only(void)
 
 	switch (socinfo_get_msm_cpu()) {
 	case MSM_CPU_8960:
-	case MSM_CPU_8960AB:
 	case MSM_CPU_8064:
+	case MSM_CPU_8064AB:
 	case MSM_CPU_8930:
 	case MSM_CPU_8930AA:
 	case MSM_CPU_8627:
@@ -184,7 +185,7 @@ int chk_apps_master(void)
 		return 1;
 	else if (cpu_is_msm8960() || cpu_is_msm8930() || cpu_is_msm8930aa() ||
 		cpu_is_msm9615() || cpu_is_apq8064() || cpu_is_msm8627() ||
-		cpu_is_msm8960ab())
+		cpu_is_apq8064ab())
 		return 1;
 	else
 		return 0;
@@ -313,21 +314,27 @@ int diag_device_write(void *buf, int proc_num, struct diag_request *write_ptr)
 
 #ifdef CONFIG_DIAG_BRIDGE_CODE
 		else if (proc_num == HSIC_DATA) {
+			unsigned long flags;
+			int foundIndex = -1;
+
+			spin_lock_irqsave(&driver->hsic_spinlock, flags);
 			for (i = 0; i < driver->poolsize_hsic_write; i++) {
 				if (driver->hsic_buf_tbl[i].length == 0) {
 					driver->hsic_buf_tbl[i].buf = buf;
 					driver->hsic_buf_tbl[i].length =
 							driver->write_len_mdm;
 					driver->num_hsic_buf_tbl_entries++;
-#ifdef DIAG_DEBUG
-					pr_debug("diag: ENQUEUE HSIC buf ptr and length is %x , %d\n",
-						(unsigned int)
-						(driver->hsic_buf_tbl[i].buf),
-						driver->hsic_buf_tbl[i].length);
-#endif
+					foundIndex = i;
 					break;
 				}
 			}
+			spin_unlock_irqrestore(&driver->hsic_spinlock, flags);
+			if (foundIndex == -1)
+				err = -1;
+			else
+				pr_debug("diag: ENQUEUE HSIC buf ptr and length is %x , %d\n",
+					(unsigned int)buf,
+					driver->write_len_mdm);
 		}
 #endif
 		for (i = 0; i < driver->num_clients; i++)
@@ -433,7 +440,8 @@ int diag_device_write(void *buf, int proc_num, struct diag_request *write_ptr)
 						diagmem_free(driver,
 							write_ptr_mdm,
 							POOL_TYPE_HSIC_WRITE);
-					pr_err("diag: HSIC write failure\n");
+						pr_err_ratelimited("diag: HSIC write failure, err: %d\n",
+							err);
 					}
 				} else {
 					pr_err("diag: allocate write fail\n");
@@ -733,6 +741,30 @@ static void diag_disable_log_mask(void)
 	mutex_unlock(&driver->diagchar_mutex);
 }
 
+int chk_equip_id_and_mask(int equip_id, uint8_t *buf)
+{
+	int i = 0, flag = 0, num_items, offset;
+	unsigned char *ptr_data;
+	struct mask_info *ptr = (struct mask_info *)(driver->log_masks);
+
+	pr_debug("diag: received equip id = %d\n", equip_id);
+	/* Check if this is valid equipment ID */
+	for (i = 0; i < MAX_EQUIP_ID; i++) {
+		if ((ptr->equip_id == equip_id) && (ptr->index != 0)) {
+			offset = ptr->index;
+			num_items = ptr->num_items;
+			flag = 1;
+			break;
+		}
+		ptr++;
+	}
+	if (!flag)
+		return -EPERM;
+	ptr_data = driver->log_masks + offset;
+	memcpy(buf, ptr_data, (num_items+7)/8);
+	return 0;
+}
+
 static void diag_update_log_mask(int equip_id, uint8_t *buf, int num_items)
 {
 	uint8_t *temp = buf;
@@ -1023,7 +1055,7 @@ static int diag_process_apps_pkt(unsigned char *buf, int len)
 	int rt_mask, rt_first_ssid, rt_last_ssid, rt_mask_size;
 	unsigned char *temp = buf;
 	uint8_t *rt_mask_ptr;
-	int data_type;
+	int data_type, equip_id, num_items;
 #if defined(CONFIG_DIAG_OVER_USB)
 	int payload_length;
 	unsigned char *ptr;
@@ -1053,6 +1085,29 @@ static int diag_process_apps_pkt(unsigned char *buf, int len)
 				diag_send_log_mask_update(driver->ch_wcnss_cntl,
 								 *(int *)buf);
 			ENCODE_RSP_AND_SEND(12 + payload_length - 1);
+			return 0;
+		} else
+			buf = temp;
+#endif
+	} /* Get log masks */
+	else if (*buf == 0x73 && *(int *)(buf+4) == 4) {
+#if defined(CONFIG_DIAG_OVER_USB)
+		if (!(driver->ch) && chk_apps_only()) {
+			equip_id = *(int *)(buf + 8);
+			num_items = *(int *)(buf + 12);
+			driver->apps_rsp_buf[0] = 0x73;
+			driver->apps_rsp_buf[1] = 0x0;
+			driver->apps_rsp_buf[2] = 0x0;
+			driver->apps_rsp_buf[3] = 0x0;
+			*(int *)(driver->apps_rsp_buf + 4) = 0x4;
+			if (!chk_equip_id_and_mask(equip_id,
+						 driver->apps_rsp_buf+20))
+				*(int *)(driver->apps_rsp_buf + 8) = 0x0;
+			else
+				*(int *)(driver->apps_rsp_buf + 8) = 0x1;
+			*(int *)(driver->apps_rsp_buf + 12) = equip_id;
+			*(int *)(driver->apps_rsp_buf + 16) = num_items;
+			ENCODE_RSP_AND_SEND(20+(num_items+7)/8-1);
 			return 0;
 		} else
 			buf = temp;
@@ -1822,8 +1877,8 @@ void diag_usb_legacy_notifier(void *priv, unsigned event,
 static void diag_smd_notify(void *ctxt, unsigned event)
 {
 	if (event == SMD_EVENT_CLOSE) {
-		pr_info("diag: clean modem registration\n");
-		diag_clear_reg(MODEM_PROC);
+		queue_work(driver->diag_cntl_wq,
+			 &(driver->diag_clean_modem_reg_work));
 		driver->ch = 0;
 		return;
 	} else if (event == SMD_EVENT_OPEN) {
@@ -1837,8 +1892,8 @@ static void diag_smd_notify(void *ctxt, unsigned event)
 static void diag_smd_qdsp_notify(void *ctxt, unsigned event)
 {
 	if (event == SMD_EVENT_CLOSE) {
-		pr_info("diag: clean lpass registration\n");
-		diag_clear_reg(QDSP_PROC);
+		queue_work(driver->diag_cntl_wq,
+			 &(driver->diag_clean_lpass_reg_work));
 		driver->chqdsp = 0;
 		return;
 	} else if (event == SMD_EVENT_OPEN) {
@@ -1852,8 +1907,8 @@ static void diag_smd_qdsp_notify(void *ctxt, unsigned event)
 static void diag_smd_wcnss_notify(void *ctxt, unsigned event)
 {
 	if (event == SMD_EVENT_CLOSE) {
-		pr_info("diag: clean wcnss registration\n");
-		diag_clear_reg(WCNSS_PROC);
+		queue_work(driver->diag_cntl_wq,
+			 &(driver->diag_clean_wcnss_reg_work));
 		driver->ch_wcnss = 0;
 		return;
 	} else if (event == SMD_EVENT_OPEN) {

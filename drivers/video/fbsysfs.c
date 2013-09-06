@@ -230,54 +230,6 @@ static ssize_t show_bpp(struct device *device, struct device_attribute *attr,
 	return snprintf(buf, PAGE_SIZE, "%d\n", fb_info->var.bits_per_pixel);
 }
 
-#ifdef CONFIG_FB_MSM_MIPI_DSI_HIMAX
-ssize_t cabc_mode_show(struct device *dev, struct device_attribute *attr, char *buf);
-ssize_t cabc_mode_store(struct device *dev, struct device_attribute *attr,
-		const char *buf, size_t count);
-
-#define ECO_MODE_ENABLE	"3"
-#define ECO_MODE_DISABLE	"1"
-static ssize_t store_eco_mode(struct device *device,
-			    struct device_attribute *attr,
-			    const char *buf, size_t count)
-{
-	struct fb_info *fb_info = dev_get_drvdata(device);
-	unsigned long tmp;
-	char *last = NULL;
-
-	if (fb_info->node != 0)
-		return count;
-	tmp = simple_strtoul(buf, &last, 0);
-	pr_info("%s:eco mode change:%ld", __func__, tmp);
-	if (tmp == 1) {
-		cabc_mode_store(device, attr, ECO_MODE_ENABLE, sizeof(ECO_MODE_ENABLE));
-	} else if (tmp == 0) {
-		cabc_mode_store(device, attr, ECO_MODE_DISABLE, sizeof(ECO_MODE_DISABLE));
-	} else {
-		pr_err("write invaild value to eco_mode");
-	}
-	return count;
-}
-
-
-static ssize_t show_eco_mode(struct device *device,
-			   struct device_attribute *attr, char *buf)
-{
-	struct fb_info *fb_info = dev_get_drvdata(device);
-	char tmp[256];
-
-	if (fb_info->node != 0)
-		return sprintf(buf, "Unsupport option\n");
-	if (cabc_mode_show(device, attr, tmp)) {
-		if (tmp[0] == ECO_MODE_ENABLE[0])
-			return sprintf(buf, "%d", 1);
-		else
-			return sprintf(buf, "%d", 0);
-	}
-	return sprintf(buf, "Unsupport option\n");
-}
-#endif
-
 static ssize_t store_rotate(struct device *device,
 			    struct device_attribute *attr,
 			    const char *buf, size_t count)
@@ -555,9 +507,6 @@ static struct device_attribute device_attrs[] = {
 	__ATTR(state, S_IRUGO|S_IWUSR, show_fbstate, store_fbstate),
 #ifdef CONFIG_FB_BACKLIGHT
 	__ATTR(bl_curve, S_IRUGO|S_IWUSR, show_bl_curve, store_bl_curve),
-#endif
-#ifdef CONFIG_FB_MSM_MIPI_DSI_HIMAX
-	__ATTR(eco_mode, S_IRUGO|S_IWUSR, show_eco_mode, store_eco_mode),
 #endif
 };
 

@@ -77,9 +77,6 @@ static ssize_t led_max_brightness_store(struct device *dev,
 		ret = size;
 		if (state > LED_FULL)
 			state = LED_FULL;
-#ifdef CONFIG_MACH_ACER_A9
-		pr_info("%s:: max value is changed:%ld\n", __func__, state);
-#endif
 		led_cdev->max_brightness = state;
 		led_set_brightness(led_cdev, led_cdev->brightness);
 	}

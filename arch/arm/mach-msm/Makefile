@@ -280,7 +280,6 @@ obj-$(CONFIG_ARCH_MSM8960) += devices-8960.o
 endif
 obj-$(CONFIG_TOUCHSCREEN_CYPRESS) += board-acer-8960-a9-touch.o
 obj-$(CONFIG_TOUCHSCREEN_CYPRESS_CYTTSP4) += board-acer-8960-a11-touch.o
-
 obj-$(CONFIG_ARCH_APQ8064) += devices-8960.o devices-8064.o
 obj-$(CONFIG_ARCH_APQ8064) += acpuclock-8064.o
 board-8960-all-objs += board-8960.o board-8960-camera.o board-8960-display.o board-8960-pmic.o board-8960-storage.o board-8960-gpiomux.o
@@ -300,9 +299,7 @@ obj-$(CONFIG_MACH_ACER_A11RD) += bms-acer-batterydata-a11.o
 else
 obj-$(CONFIG_MACH_ACER_A9) += bms-acer-batterydata.o
 endif
-else
 obj-$(CONFIG_PM8921_BMS) += bms-batterydata.o bms-batterydata-desay.o
-endif
 obj-$(CONFIG_MACH_APQ8064_SIM) += board-8064-all.o board-8064-regulator.o
 obj-$(CONFIG_MACH_APQ8064_RUMI3) += board-8064-all.o board-8064-regulator.o
 obj-$(CONFIG_MACH_APQ8064_CDP) += board-8064-all.o board-8064-regulator.o
@@ -394,6 +391,7 @@ obj-$(CONFIG_ARCH_MSM7X30) += board-msm7x30-regulator.o
 obj-$(CONFIG_ARCH_MSM7X27A) += board-msm7x27a-regulator.o
 endif
 
+obj-$(CONFIG_ARCH_MSM8960) += mdm2.o mdm_common.o
 ifndef CONFIG_MACH_ACER_A9
 obj-$(CONFIG_ARCH_MSM8960) += mdm2.o mdm_common.o
 endif
@@ -412,11 +410,3 @@ obj-$(CONFIG_MSM_VP_REGULATOR) += msm_vp.o
 ifdef CONFIG_MSM_CPR
 obj-$(CONFIG_DEBUG_FS) += msm_cpr-debug.o
 endif
-
-obj-$(CONFIG_FORCE_FAST_CHARGE) += fastchg.o
-
-obj-$(CONFIG_RAMDUMP_TAGS) += board-rdtags.o
-CFLAGS_board-rdtags.o	:= \
-	-D"INFO_PRODUCT=\"$(if $(TARGET_PRODUCT),$(TARGET_PRODUCT),unknown)\"" \
-	-D"INFO_VARIANT=\"$(if $(TARGET_BUILD_VARIANT),$(TARGET_BUILD_VARIANT),unknown)\"" \
-	-D"INFO_BUILDID=\"$(if $(BUILD_ID),$(BUILD_ID),unknown)\""

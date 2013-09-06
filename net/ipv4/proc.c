@@ -258,9 +258,6 @@ static const struct snmp_mib snmp4_net_list[] = {
 	SNMP_MIB_ITEM("TCPReqQFullDrop", LINUX_MIB_TCPREQQFULLDROP),
 	SNMP_MIB_ITEM("TCPRetransFail", LINUX_MIB_TCPRETRANSFAIL),
 	SNMP_MIB_ITEM("TCPRcvCoalesce", LINUX_MIB_TCPRCVCOALESCE),
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-	SNMP_MIB_ITEM("TCPSndRst", LINUX_MIB_TCPRESET),
-#endif
 	SNMP_MIB_SENTINEL
 };
 
@@ -463,32 +460,6 @@ static const struct file_operations netstat_seq_fops = {
 	.release = single_release_net,
 };
 
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-static int rststat_seq_show(struct seq_file *seq, void *v)
-{
-	int size;
-	struct net *net = seq->private;
-
-	size = sizeof(snmp4_net_list) / sizeof(snmp4_net_list[0]);
-	seq_printf(seq, "%lu\n", snmp_fold_field((void __percpu **)net->mib.net_statistics,
-		snmp4_net_list[size - 2].entry));
-	return 0;
-}
-
-static int rststat_seq_open(struct inode *inode, struct file *file)
-{
-	return single_open_net(inode, file, rststat_seq_show);
-}
-
-static const struct file_operations rst_seq_fops = {
-	.owner	 = THIS_MODULE,
-	.open	 = rststat_seq_open,
-	.read	 = seq_read,
-	.llseek	 = seq_lseek,
-	.release = single_release_net,
-};
-#endif
-
 static __net_init int ip_proc_init_net(struct net *net)
 {
 	if (!proc_net_fops_create(net, "sockstat", S_IRUGO, &sockstat_seq_fops))
@@ -497,16 +468,9 @@ static __net_init int ip_proc_init_net(struct net *net)
 		goto out_netstat;
 	if (!proc_net_fops_create(net, "snmp", S_IRUGO, &snmp_seq_fops))
 		goto out_snmp;
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-	if (!proc_net_fops_create(net, "rststat", S_IRUGO, &rst_seq_fops))
-		goto out_rststat;
-#endif
 
 	return 0;
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-out_rststat:
-	proc_net_remove(net, "snmp");
-#endif
+
 out_snmp:
 	proc_net_remove(net, "netstat");
 out_netstat:
@@ -517,9 +481,6 @@ out_sockstat:
 
 static __net_exit void ip_proc_exit_net(struct net *net)
 {
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-	proc_net_remove(net, "rststat");
-#endif
 	proc_net_remove(net, "snmp");
 	proc_net_remove(net, "netstat");
 	proc_net_remove(net, "sockstat");

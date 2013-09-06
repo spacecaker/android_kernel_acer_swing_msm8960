@@ -79,24 +79,6 @@ static long __init_memblock memblock_overlaps_region(struct memblock_type *type,
 	return (i < type->cnt) ? i : -1;
 }
 
-phys_addr_t __init_memblock memblock_find_in_size(phys_addr_t size)
-{
-	long i;
-	phys_addr_t memblockbase, memblocksize;
-
-	for (i = memblock.memory.cnt - 1; i >= 0; i--) {
-		memblockbase = memblock.memory.regions[i].base;
-		memblocksize = memblock.memory.regions[i].size;
-
-		if (memblocksize >= size)
-			return (memblock.memory.regions[i].base + memblock.memory.regions[i].size);
-	}
-
-	pr_err("memblock: Unavailable memblock for this size 0x%llx request\n",
-				(unsigned long long)size);
-	return MEMBLOCK_ERROR;
-}
-
 /**
  * memblock_find_in_range_node - find free area in given range and node
  * @start: start of candidate range

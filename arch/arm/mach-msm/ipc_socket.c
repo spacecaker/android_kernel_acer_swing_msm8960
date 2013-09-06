@@ -130,7 +130,7 @@ msg_build_failure:
 static int msm_ipc_router_extract_msg(struct msghdr *m,
 				      struct sk_buff_head *msg_head)
 {
-	struct sockaddr_msm_ipc *addr = NULL;
+	struct sockaddr_msm_ipc *addr = (struct sockaddr_msm_ipc *)m->msg_name;
 	struct rr_header *hdr;
 	struct sk_buff *temp;
 	int offset = 0, data_len = 0, copy_len;
@@ -140,7 +140,6 @@ static int msm_ipc_router_extract_msg(struct msghdr *m,
 		return -EINVAL;
 	}
 
-	addr = (struct sockaddr_msm_ipc *)m->msg_name;
 	temp = skb_peek(msg_head);
 	hdr = (struct rr_header *)(temp->data);
 	if (addr || (hdr->src_port_id != IPC_ROUTER_ADDRESS)) {

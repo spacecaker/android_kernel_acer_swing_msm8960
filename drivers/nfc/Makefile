@@ -3,7 +3,7 @@
 #
 
 obj-$(CONFIG_PN544_NFC)		+= pn544.o
-obj-$(CONFIG_PN544_TEST)	+= pn544_test.o
-obj-$(CONFIG_PN544_PRJ)		+= nfc_prj.o
+obj-$(CONFIG_NFC_PN533)		+= pn533.o
+obj-$(CONFIG_NFC_WILINK)	+= nfcwilink.o
 
 ccflags-$(CONFIG_NFC_DEBUG) := -DDEBUG

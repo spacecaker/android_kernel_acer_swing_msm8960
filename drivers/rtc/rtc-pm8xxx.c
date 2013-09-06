@@ -409,9 +409,6 @@ static int __devinit pm8xxx_rtc_probe(struct platform_device *pdev)
 	struct resource *rtc_resource;
 	const struct pm8xxx_rtc_platform_data *pdata =
 		pdev->dev.platform_data;
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-	struct rtc_time tm;
-#endif
 
 	if (pdata != NULL)
 		rtc_write_enable = pdata->rtc_write_enable;
@@ -480,21 +477,6 @@ static int __devinit pm8xxx_rtc_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, rtc_dd);
 
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-	/* Set the default system time to 2012-01-01 00:00:00 UTC.
-	 */
-	pm8xxx_rtc_read_time(&pdev->dev, &tm);
-	if (tm.tm_year == 70) {
-		pr_err("System time has been reset as 2012-01-01 00:00:00 UTC!\n");
-		tm.tm_year = 112; /* RTC layer expects years to start at 1900 */
-		tm.tm_mon  = 0;  /* RTC layer expects mons to be 0 based */
-		tm.tm_mday = 1;
-		tm.tm_hour = 0;
-		tm.tm_min  = 0;
-		tm.tm_sec  = 0;
-		pm8xxx_rtc_set_time(&pdev->dev, &tm);
-	}
-#endif
 	/* Register the RTC device */
 	rtc_dd->rtc = rtc_device_register("pm8xxx_rtc", &pdev->dev,
 				&pm8xxx_rtc_ops, THIS_MODULE);

@@ -3,7 +3,7 @@
 #
 
 menu "Near Field Communication (NFC) devices"
-	depends on I2C
+	depends on NFC
 
 config PN544_NFC
 	tristate "PN544 NFC driver"
@@ -16,14 +16,6 @@ config PN544_NFC
 
 	  To compile this driver as a module, choose m here. The module will
 	  be called pn544.
-
-config PN544_TEST
-	bool "PN544 test flag"
-	default n
-
-config PN544_PRJ
-	bool "PN544 firmware flag"
-	default n
 
 config NFC_PN533
 	tristate "NXP PN533 USB driver"

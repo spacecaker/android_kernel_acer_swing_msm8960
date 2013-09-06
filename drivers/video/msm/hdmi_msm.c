@@ -51,13 +51,6 @@
 
 static int msm_hdmi_sample_rate = MSM_HDMI_SAMPLE_RATE_48KHZ;
 
-#ifdef CONFIG_MACH_ACER_A9
-#define HDCP_MAX_RETRY	10
-static int hdcp_retry_count;
-
-extern int is_mdp4_dtv_on(void);
-#endif
-
 /* HDMI/HDCP Registers */
 #define HDCP_DDC_STATUS		0x0128
 #define HDCP_DDC_CTRL_0		0x0120
@@ -641,21 +634,19 @@ static void hdmi_msm_setup_video_mode_lut(void)
 	HDMI_SETUP_LUT(720x480p60_4_3);
 	HDMI_SETUP_LUT(720x480p60_16_9);
 	HDMI_SETUP_LUT(1280x720p60_16_9);
+	HDMI_SETUP_LUT(1920x1080i60_16_9);
 	HDMI_SETUP_LUT(1440x480i60_4_3);
 	HDMI_SETUP_LUT(1440x480i60_16_9);
+	HDMI_SETUP_LUT(1920x1080p60_16_9);
 	HDMI_SETUP_LUT(720x576p50_4_3);
 	HDMI_SETUP_LUT(720x576p50_16_9);
 	HDMI_SETUP_LUT(1280x720p50_16_9);
 	HDMI_SETUP_LUT(1440x576i50_4_3);
 	HDMI_SETUP_LUT(1440x576i50_16_9);
-	HDMI_SETUP_LUT(1920x1080p24_16_9);
-	HDMI_SETUP_LUT(1920x1080p30_16_9);
-#ifndef CONFIG_ACER_HDMI_MHL_SII8334
-	HDMI_SETUP_LUT(1920x1080p25_16_9);
 	HDMI_SETUP_LUT(1920x1080p50_16_9);
-	HDMI_SETUP_LUT(1920x1080p60_16_9);
-	HDMI_SETUP_LUT(1920x1080i60_16_9);
-#endif
+	HDMI_SETUP_LUT(1920x1080p24_16_9);
+	HDMI_SETUP_LUT(1920x1080p25_16_9);
+	HDMI_SETUP_LUT(1920x1080p30_16_9);
 }
 
 #ifdef PORT_DEBUG
@@ -860,13 +851,6 @@ static void hdmi_msm_hdcp_reauth_work(struct work_struct *work)
 	 * only if the device is HDCP-capable
 	 */
 	hdcp_deauthenticate();
-#ifdef CONFIG_MACH_ACER_A9
-	if (hdcp_retry_count >= HDCP_MAX_RETRY) {
-		pr_err("%s: HDPC retry max count reach! Do not retry!", __func__);
-		return;
-	} else
-		hdcp_retry_count++;
-#endif
 	mutex_lock(&hdcp_auth_state_mutex);
 	hdmi_msm_state->reauth = TRUE;
 	mutex_unlock(&hdcp_auth_state_mutex);
@@ -2337,13 +2321,6 @@ static int hdcp_authentication_part1(void)
 		return 0;
 	}
 
-#ifdef CONFIG_MACH_ACER_A9
-	if (!is_mdp4_dtv_on()) {
-		DEV_INFO("%s: should not handle hdcp interrupt!\n", __func__);
-		return 0;
-	}
-#endif
-
 	if (!is_part1_done) {
 		is_part1_done = TRUE;
 
@@ -3634,13 +3611,8 @@ static int hdmi_msm_audio_off(void)
 static uint8 hdmi_msm_avi_iframe_lut[][16] = {
 /*	480p60	480i60	576p50	576i50	720p60	 720p50	1080p60	1080i60	1080p50
 	1080i50	1080p24	1080p30	1080p25	640x480p 480p60_16_9 576p50_4_3 */
-#ifdef CONFIG_MACH_ACER_A9
-	{0x12,	0x12,	0x12,	0x12,	0x12,	 0x12,	0x12,	0x12,	0x12,
-	 0x12,	0x12,	0x12,	0x12,	0x12, 0x12, 0x12}, /*00*/
-#else
 	{0x10,	0x10,	0x10,	0x10,	0x10,	 0x10,	0x10,	0x10,	0x10,
 	 0x10,	0x10,	0x10,	0x10,	0x10, 0x10, 0x10}, /*00*/
-#endif
 	{0x18,	0x18,	0x28,	0x28,	0x28,	 0x28,	0x28,	0x28,	0x28,
 	 0x28,	0x28,	0x28,	0x28,	0x18, 0x28, 0x18}, /*01*/
 	{0x00,	0x04,	0x04,	0x04,	0x04,	 0x04,	0x04,	0x04,	0x04,
@@ -4477,10 +4449,6 @@ static int hdmi_msm_power_off(struct platform_device *pdev)
 		del_timer_sync(&hdmi_msm_state->hdcp_timer);
 
 		hdcp_deauthenticate();
-#ifdef CONFIG_MACH_ACER_A9
-		pr_info("%s: clear the hdcp retry count", __func__);
-		hdcp_retry_count = 0;
-#endif
 	}
 
 	SWITCH_SET_HDMI_AUDIO(0, 0);
@@ -4800,17 +4768,13 @@ static int __init hdmi_msm_init(void)
 	}
 
 	external_common_state = &hdmi_msm_state->common;
-#ifdef CONFIG_ACER_HDMI_MHL_SII8334
-	external_common_state->video_resolution =
-		HDMI_VFRMT_1920x1080p24_16_9;
-#else
+
 	if (hdmi_prim_display && hdmi_prim_resolution)
 		external_common_state->video_resolution =
 			hdmi_prim_resolution - 1;
 	else
 		external_common_state->video_resolution =
 			HDMI_VFRMT_1920x1080p60_16_9;
-#endif
 
 #ifdef CONFIG_FB_MSM_HDMI_3D
 	external_common_state->switch_3d = hdmi_msm_switch_3d;

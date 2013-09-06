@@ -58,22 +58,6 @@ static uint32_t wait_pending;
 
 static struct alarm alarms[ANDROID_ALARM_TYPE_COUNT];
 
-#if defined(CONFIG_ARCH_ACER_MSM8960) && defined(CONFIG_ACER_INPUT)
-extern bool enable_play;
-void acer_set_alarm(ktime_t next_time)
-{
-	alarm_start_range(&alarms[ANDROID_ALARM_RTC_WAKEUP], next_time, next_time);
-}
-EXPORT_SYMBOL(acer_set_alarm);
-
-ktime_t acer_get_elapsed_realtime(void)
-{
-	return alarm_get_elapsed_realtime();
-}
-EXPORT_SYMBOL(acer_get_elapsed_realtime);
-
-#endif
-
 static long alarm_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	int rv = 0;
@@ -133,13 +117,6 @@ static long alarm_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			rv = -EFAULT;
 			goto err1;
 		}
-#if defined(CONFIG_ARCH_ACER_MSM8960) && defined(CONFIG_ACER_INPUT)
-		/* skip other wakeup alarm */
-		if (enable_play && (alarm_type == ANDROID_ALARM_RTC_WAKEUP)) {
-			rv = -EFAULT;
-			goto err1;
-		}
-#endif
 from_old_alarm_set:
 		spin_lock_irqsave(&alarm_slock, flags);
 		pr_alarm(IO, "alarm %d set %ld.%09ld\n", alarm_type,

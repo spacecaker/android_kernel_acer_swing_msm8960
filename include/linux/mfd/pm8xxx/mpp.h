@@ -128,10 +128,6 @@ static inline int pm8xxx_mpp_config(unsigned mpp,
 
 #endif
 
-#ifdef CONFIG_ARCH_ACER_MSM8960
-void save_pmic_mpp_sleep_state(void);
-#endif
-
 /* MPP Type: type */
 #define	PM8XXX_MPP_TYPE_D_INPUT		0
 #define	PM8XXX_MPP_TYPE_D_OUTPUT	1

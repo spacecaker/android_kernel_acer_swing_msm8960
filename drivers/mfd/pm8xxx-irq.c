@@ -22,9 +22,6 @@
 #include <linux/mfd/pm8xxx/irq.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
-#ifdef CONFIG_ARCH_ACER_MSM8960
-#include <linux/syscore_ops.h>
-#endif
 
 /* PMIC8xxx IRQ */
 
@@ -60,10 +57,6 @@ struct pm_irq_chip {
 	unsigned int		num_masters;
 	u8			config[0];
 };
-
-#ifdef CONFIG_ARCH_ACER_MSM8960
-static struct pm_irq_chip	*chip;
-#endif
 
 static int pm8xxx_read_root_irq(const struct pm_irq_chip *chip, u8 *rp)
 {
@@ -395,82 +388,10 @@ bail_out:
 }
 EXPORT_SYMBOL_GPL(pm8xxx_get_irq_stat);
 
-#ifdef CONFIG_ARCH_ACER_MSM8960
-extern int msm_show_resume_irq_mask;
-
-static void pm8xxx_show_resume_irq(void)
-{
-	u8	root, blockbits, bits;
-	int	ret, master, masters = 0;
-	int i, j, block, pmirq;
-
-	if (!msm_show_resume_irq_mask)
-		return;
-
-	ret = pm8xxx_read_root_irq(chip, &root);
-	if (ret) {
-		pr_err("Can't read root status ret=%d\n", ret);
-		return;
-	}
-
-	/* on pm8xxx series masters start from bit 1 of the root */
-	masters = root >> 1;
-
-	/* Read allowed masters for blocks. */
-	for (master = 0; master < chip->num_masters; master++) {
-		if (masters & (1 << master)) {
-			ret = pm8xxx_read_master_irq(chip, master, &blockbits);
-			if (ret) {
-				pr_err("Failed to read master %d ret=%d\n", master, ret);
-				return;
-			}
-			if (!blockbits) {
-				pr_err("master bit set in root but no blocks: %d", master);
-				return;
-			}
-
-			for (i = 0; i < 8; i++) {
-				if (blockbits & (1 << i)) {
-					block = master * 8 + i;	/* block # */
-					ret = pm8xxx_read_block_irq(chip, block, &bits);
-					if (ret) {
-						pr_err("Failed reading %d block ret=%d", block, ret);
-						return;
-					}
-					if (!bits) {
-						pr_err("block bit set in master but no irqs: %d", block);
-						return;
-					}
-
-					/* Check IRQ bits */
-					for (j = 0; j < 8; j++) {
-						if (bits & (1 << j)) {
-							pmirq = block * 8 + j;
-							pr_warning(" %d (%d,%d) triggered", pmirq + chip->irq_base, block, j);
-						}
-					}
-				}
-			}
-		}
-	}
-}
-
-static void pm8xxx_irq_resume(void)
-{
-	pm8xxx_show_resume_irq();
-}
-
-static struct syscore_ops pm8xxx_irq_syscore_ops = {
-	.resume = pm8xxx_irq_resume,
-};
-#endif
-
 struct pm_irq_chip *  __devinit pm8xxx_irq_init(struct device *dev,
 				const struct pm8xxx_irq_platform_data *pdata)
 {
-#ifndef CONFIG_ARCH_ACER_MSM8960
 	struct pm_irq_chip  *chip;
-#endif
 	int devirq, rc;
 	unsigned int pmirq;
 
@@ -525,10 +446,6 @@ struct pm_irq_chip *  __devinit pm8xxx_irq_init(struct device *dev,
 			irq_set_irq_wake(devirq, 1);
 		}
 	}
-
-#ifdef CONFIG_ARCH_ACER_MSM8960
-	register_syscore_ops(&pm8xxx_irq_syscore_ops);
-#endif
 
 	return chip;
 }

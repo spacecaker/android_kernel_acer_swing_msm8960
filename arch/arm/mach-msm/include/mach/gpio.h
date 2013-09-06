@@ -228,9 +228,4 @@ int __init msm_gpio_of_init(struct device_node *node,
 			    struct device_node *parent);
 #endif
 
-#ifdef CONFIG_ARCH_ACER_MSM8960
-void save_msm_gpio_sleep_state(void);
-void restore_msm_gpio_state(void);
-#endif
-
 #endif /* __ASM_ARCH_MSM_GPIO_H */

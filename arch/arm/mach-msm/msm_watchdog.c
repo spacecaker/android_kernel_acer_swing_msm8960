@@ -111,34 +111,22 @@ void msm_wdog_bark_fin(void)
 	panic("Apps Watchdog Bark received\n");
 }
 
-#ifdef CONFIG_ARCH_ACER_MSM8960
-int msm_watchdog_suspend(struct device *dev)
-#else
 static int msm_watchdog_suspend(struct device *dev)
-#endif
 {
 	if (!enable)
 		return 0;
-#ifdef CONFIG_ARCH_ACER_MSM8960
-	printk(KERN_INFO "MSM Watchdog is suspend.\n");
-#endif
+
 	__raw_writel(1, msm_tmr0_base + WDT0_RST);
 	__raw_writel(0, msm_tmr0_base + WDT0_EN);
 	mb();
 	return 0;
 }
 
-#ifdef CONFIG_ARCH_ACER_MSM8960
-int msm_watchdog_resume(struct device *dev)
-#else
 static int msm_watchdog_resume(struct device *dev)
-#endif
 {
 	if (!enable)
 		return 0;
-#ifdef CONFIG_ARCH_ACER_MSM8960
-	printk(KERN_INFO "MSM Watchdog is resume.\n");
-#endif
+
 	__raw_writel(1, msm_tmr0_base + WDT0_EN);
 	__raw_writel(1, msm_tmr0_base + WDT0_RST);
 	mb();

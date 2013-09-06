@@ -28,7 +28,6 @@
 #include <mach/msm_iomap.h>
 #include <mach/socinfo.h>
 #include <mach/system.h>
-#include <mach/scm.h>
 #include <mach/socinfo.h>
 #include <mach/msm-krait-l2-accessors.h>
 #include <asm/cacheflush.h>
@@ -38,12 +37,6 @@
 #include <asm/hardware/cache-l2x0.h>
 #ifdef CONFIG_VFP
 #include <asm/vfp.h>
-#endif
-#ifdef CONFIG_ARCH_ACER_MSM8960
-#include <mach/gpio.h>
-#include <mach/rpm.h>
-#include <linux/mfd/pm8xxx/mpp.h>
-#include <linux/mfd/pm8xxx/gpio.h>
 #endif
 
 #include "acpuclock.h"
@@ -115,10 +108,6 @@ static char *msm_pm_sleep_mode_labels[MSM_PM_SLEEP_MODE_NR] = {
 	[MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE] =
 		"standalone_power_collapse",
 };
-
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-void debug_dump_XO_status(void);
-#endif
 
 static struct msm_pm_sleep_ops pm_sleep_ops;
 /*
@@ -555,9 +544,6 @@ static bool __ref msm_pm_spm_power_collapse(
 
 	ret = msm_spm_set_low_power_mode(MSM_SPM_MODE_CLOCK_GATING, false);
 	WARN_ON(ret);
-#ifdef CONFIG_MSM_RTB
-	uncached_logk(LOGK_READL, (void *)(collapsed));
-#endif
 	return collapsed;
 }
 
@@ -647,7 +633,7 @@ static void msm_pm_target_init(void)
 	if (cpu_is_apq8064())
 		msm_pm_save_cp15 = true;
 
-	if (cpu_is_msm8974())
+	if (machine_is_msm8974())
 		msm_pm_use_qtimer = true;
 }
 
@@ -822,9 +808,6 @@ int msm_pm_idle_enter(enum msm_pm_sleep_mode sleep_mode)
 		break;
 
 	case MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE:
-#ifdef CONFIG_MSM_RTB
-		uncached_logk(LOGK_READL, (void *)(sleep_mode));
-#endif
 		msm_pm_power_collapse_standalone(true);
 		exit_stat = MSM_PM_STAT_IDLE_STANDALONE_POWER_COLLAPSE;
 		break;
@@ -837,9 +820,7 @@ int msm_pm_idle_enter(enum msm_pm_sleep_mode sleep_mode)
 		int notify_rpm =
 			(sleep_mode == MSM_PM_SLEEP_MODE_POWER_COLLAPSE);
 		int collapsed;
-#ifdef CONFIG_MSM_RTB
-		uncached_logk(LOGK_READL, (void *)(sleep_mode));
-#endif
+
 		timer_expiration = msm_pm_timer_enter_idle();
 
 		sleep_delay = (uint32_t) msm_pm_convert_and_cap_time(
@@ -964,39 +945,6 @@ int msm_pm_wait_cpu_shutdown(unsigned int cpu)
 	return -EBUSY;
 }
 
-#ifdef CONFIG_ARCH_ACER_MSM8960
-static void dump_subsystem_status(bool is_suspend)
-{
-	int ret;
-	struct msm_rpm_iv_pair status[6];
-	char *suspend_state = is_suspend ? "suspend" : "resume";
-
-	status[0].id = MSM_RPM_STATUS_ID_IN_ACTIVE_CORES;
-	status[1].id = MSM_RPM_STATUS_ID_CORE0_SLEEP_COUNT;
-	status[2].id = MSM_RPM_STATUS_ID_CORE1_SLEEP_COUNT;
-	status[3].id = MSM_RPM_STATUS_ID_CORE2_SLEEP_COUNT;
-	status[4].id = MSM_RPM_STATUS_ID_CORE3_SLEEP_COUNT;
-	status[5].id = MSM_RPM_STATUS_ID_CORE4_SLEEP_COUNT;
-
-	ret = msm_rpm_get_status(status, 6);
-	if (ret < 0) {
-		pr_err("get sub-system status failed");
-		return;
-	}
-
-	pr_info("[%s] APSS %s, count = %d", suspend_state,
-		(status[0].value&(0x1<<0))?"active":"inactive", status[1].value);
-	pr_info("[%s] MPSS %s, count = %d", suspend_state,
-		(status[0].value&(0x1<<1))?"active":"inactive", status[2].value);
-	pr_info("[%s] LPASS %s, count = %d", suspend_state,
-		(status[0].value&(0x1<<2))?"active":"inactive", status[3].value);
-	pr_info("[%s] RIVA %s, count = %d", suspend_state,
-		(status[0].value&(0x1<<3))?"active":"inactive", status[4].value);
-	pr_info("[%s] DSPS %s, count = %d", suspend_state,
-		(status[0].value&(0x1<<4))?"active":"inactive", status[5].value);
-}
-#endif
-
 static int msm_pm_enter(suspend_state_t state)
 {
 	bool allow[MSM_PM_SLEEP_MODE_NR];
@@ -1043,14 +991,6 @@ static int msm_pm_enter(suspend_state_t state)
 					MSM_PM_SLEEP_MODE_POWER_COLLAPSE, -1,
 					-1, &power);
 
-#ifdef CONFIG_ARCH_ACER_MSM8960
-		save_msm_gpio_sleep_state();
-		save_pmic_gpio_sleep_state();
-		save_pmic_mpp_sleep_state();
-		debug_dump_XO_status();
-		dump_subsystem_status(true);
-#endif
-
 		if (rs_limits) {
 			if (pm_sleep_ops.enter_sleep)
 				ret = pm_sleep_ops.enter_sleep(
@@ -1067,12 +1007,6 @@ static int msm_pm_enter(suspend_state_t state)
 			pr_err("%s: cannot find the lowest power limit\n",
 				__func__);
 		}
-
-#ifdef CONFIG_ARCH_ACER_MSM8960
-		dump_subsystem_status(false);
-		restore_msm_gpio_state();
-#endif
-
 		time = msm_pm_timer_exit_suspend(time, period);
 		msm_pm_add_stat(MSM_PM_STAT_SUSPEND, time);
 	} else if (allow[MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE]) {

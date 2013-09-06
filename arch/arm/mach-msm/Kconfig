@@ -67,6 +67,7 @@ config ARCH_MSM7X30
 	select MSM_PM2 if PM
 	select HOLES_IN_ZONE if SPARSEMEM
 	select MSM_MODEM_RESTART
+	select ARM_HAS_SG_CHAIN
 
 config ARCH_QSD8X50
 	bool "QSD8X50"
@@ -175,7 +176,7 @@ config ARCH_MSM8960
 	select HOLES_IN_ZONE if SPARSEMEM
 	select MSM_RUN_QUEUE_STATS
 	select ARM_HAS_SG_CHAIN
-	select MSM_IOMMU_GPU_SYNC
+	select MSM_KRAIT_WFE_FIXUP
 
 config ARCH_MSM8930
 	bool "MSM8930"
@@ -207,7 +208,7 @@ config ARCH_MSM8930
 	select MSM_PM8X60 if PM
 	select HOLES_IN_ZONE if SPARSEMEM
 	select ARM_HAS_SG_CHAIN
-	select MSM_IOMMU_GPU_SYNC
+	select MSM_KRAIT_WFE_FIXUP
 
 config ARCH_APQ8064
 	bool "APQ8064"
@@ -234,7 +235,7 @@ config ARCH_APQ8064
 	select MIGHT_HAVE_PCI
 	select ARCH_SUPPORTS_MSI
 	select ARM_HAS_SG_CHAIN
-	select MSM_IOMMU_GPU_SYNC
+	select MSM_KRAIT_WFE_FIXUP
 
 config ARCH_MSM8974
 	bool "MSM8974"
@@ -381,6 +382,9 @@ config  ARCH_MSM_KRAITMP
 
 config  ARCH_MSM_CORTEXMP
 	select MSM_SMP
+	bool
+
+config  MSM_KRAIT_WFE_FIXUP
 	bool
 
 config  ARCH_MSM_CORTEX_A5
@@ -899,17 +903,6 @@ config MACH_FSM9XXX_SURF
 	  FFA board.
 
 endmenu
-
-config RAMDUMP_TAGS
-	bool
-	default y
-	help
-
-
-config AMSS_LASTLOG
-	bool
-	default y
-	help
 
 config MSM_STACKED_MEMORY
 	bool "Stacked Memory"
@@ -2188,13 +2181,6 @@ config MSM_RUN_QUEUE_STATS
 config MSM_STANDALONE_POWER_COLLAPSE
        bool "Enable standalone power collapse"
        default n
-
-config FORCE_FAST_CHARGE
-	bool "Force AC charge mode at will"
-  	default y
-  	help
-    	  A simple sysfs interface to force adapters that
-    	  are detected as USB to charge as AC.
 
 config MSM_GSBI9_UART
 	bool "Enable GSBI9 UART device"

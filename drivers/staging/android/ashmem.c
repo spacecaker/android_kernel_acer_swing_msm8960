@@ -821,9 +821,6 @@ EXPORT_SYMBOL(get_ashmem_file);
 void put_ashmem_file(struct file *file)
 {
 	char currtask_name[FIELD_SIZEOF(struct task_struct, comm) + 1];
-
-	if (!file)
-		return;
 	pr_debug("rdev %d pid %u(%s) file %p(%ld)" " dev id: %d\n",
 		file->f_dentry->d_inode->i_rdev, current->pid,
 		get_task_comm(currtask_name, current), file,

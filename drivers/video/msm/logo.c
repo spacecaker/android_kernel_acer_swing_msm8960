@@ -28,51 +28,6 @@
 #define fb_height(fb)	((fb)->var.yres)
 #define fb_size(fb)	((fb)->var.xres * (fb)->var.yres * 2)
 
-#if defined(CONFIG_MACH_ACER_A9)
-static void cp_to_fb32(unsigned short *bits, unsigned short *ptr, unsigned max,
-			unsigned count, struct fb_info *info)
-{
-	uint32_t rgb32, red, green, blue, alpha, n;
-	uint32_t fb_cnt = 0;
-	uint32_t *fb = (uint32_t *)bits;
-	uint32_t actual_line_bytes = 0, dummy = 0;
-	uint32_t line_base = 0;
-
-	if (info) {
-		actual_line_bytes = info->fix.line_length / (info->var.bits_per_pixel / 8);
-		dummy = actual_line_bytes - info->var.xres;
-	}
-
-	while (count > 3) {
-		n = ptr[0];
-		if (n > max)
-			break;
-
-		/* convert 16 bits to 32 bits */
-		rgb32 = ((ptr[1] >> 11) & 0x1F);
-		red = (rgb32 << 3) | (rgb32 >> 2);
-		rgb32 = ((ptr[1] >> 5) & 0x3F);
-		green = (rgb32 << 2) | (rgb32 >> 4);
-		rgb32 = ((ptr[1]) & 0x1F);
-		blue = (rgb32 << 3) | (rgb32 >> 2);
-		alpha = 0xff;
-		rgb32 = (alpha << 24) | (blue << 16) | (green << 8) | (red);
-
-		max -= n;
-		/* fix->line_length is not the same as actual line length
-		 * Fix it here */
-		while (n--) {
-			*(fb + fb_cnt++)  = rgb32;
-			if (fb_cnt == (line_base + info->var.xres)) {
-				fb_cnt += dummy;
-				line_base = (fb_cnt / actual_line_bytes) * actual_line_bytes;
-			}
-		}
-		ptr += 2;
-		count -= 4;
-	}
-}
-#else
 static void memset16(void *_ptr, unsigned short val, unsigned count)
 {
 	unsigned short *ptr = _ptr;
@@ -80,8 +35,6 @@ static void memset16(void *_ptr, unsigned short val, unsigned count)
 	while (count--)
 		*ptr++ = val;
 }
-#endif
-
 
 /* 565RLE image format: [count(2 bytes), rle(2 bytes)] */
 int load_565rle_image(char *filename, bool bf_supported)
@@ -130,7 +83,6 @@ int load_565rle_image(char *filename, bool bf_supported)
 		goto err_logo_free_data;
 	}
 	bits = (unsigned short *)(info->screen_base);
-#if !defined(CONFIG_MACH_ACER_A9)
 	while (count > 3) {
 		unsigned n = ptr[0];
 		if (n > max)
@@ -141,9 +93,6 @@ int load_565rle_image(char *filename, bool bf_supported)
 		ptr += 2;
 		count -= 4;
 	}
-#else
-	cp_to_fb32(bits, ptr, max, count, info);
-#endif
 
 err_logo_free_data:
 	kfree(data);

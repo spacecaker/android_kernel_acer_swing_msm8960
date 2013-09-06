@@ -233,11 +233,5 @@ config DEFAULT_SECURITY
 	default "yama" if DEFAULT_SECURITY_YAMA
 	default "" if DEFAULT_SECURITY_DAC
 
-config ACER_SECURE_MOUNT
-	bool "Acer secure mount enabler"
-	default n
-	help
-	  This option is for security enhancement. It avoids an unauthorized
-	  operation that remounts /system partition as writable.
 endmenu
 

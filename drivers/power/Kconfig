@@ -389,21 +389,8 @@ config BQ27520_TEST_ENABLE
 	help
 	  Say Y here to enable Test sysfs Interface for BQ27520 Drivers.
 
-config ACER_BQ27520
-	tristate "Acer BQ27520 battery driver"
-	depends on I2C
-	default n
-	help
-	  Say Y here to enable support for batteries with BQ27520 (I2C) chips.
-
 config PM8921_CHARGER
 	tristate "PM8921 Charger driver"
-	depends on MFD_PM8921_CORE
-	help
-	  Say Y here to enable support for pm8921 chip charger subdevice
-
-config ACER_PM8921_CHARGER
-	tristate "Acer PM8921 Charger driver"
 	depends on MFD_PM8921_CORE
 	help
 	  Say Y here to enable support for pm8921 chip charger subdevice

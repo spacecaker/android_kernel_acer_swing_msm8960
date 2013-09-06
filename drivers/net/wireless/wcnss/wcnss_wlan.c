@@ -22,6 +22,9 @@
 #include <linux/jiffies.h>
 #include <linux/gpio.h>
 #include <mach/peripheral-loader.h>
+#ifdef CONFIG_WCNSS_MEM_PRE_ALLOC
+#include "wcnss_prealloc.h"
+#endif
 
 #define DEVICE "wcnss_wlan"
 #define VERSION "1.01"
@@ -49,15 +52,6 @@ static struct {
 	struct wcnss_wlan_config wlan_config;
 	struct delayed_work wcnss_work;
 } *penv = NULL;
-
-static ssize_t mac_show(struct kobject *kobj, struct kobj_attribute *attr, char * buf);
-static ssize_t firmware_show(struct kobject *kobj, struct kobj_attribute *attr, char * buf);
-static ssize_t module_show(struct kobject *kobj, struct kobj_attribute *attr, char * buf);
-
-u8 gsoftwareVersion[64] = {0};
-u8 ghardwareVersion[64] = {0};
-unsigned char gdev_info_mac[6];
-static unsigned short flag_wlan_dev_info=0;
 
 static ssize_t wcnss_serial_number_show(struct device *dev,
 				struct device_attribute *attr, char *buf)
@@ -329,112 +323,6 @@ static int wcnss_wlan_resume(struct device *dev)
 	return 0;
 }
 
-static ssize_t mac_show(struct kobject *kobj, struct kobj_attribute *attr, char * buf)
-{
-      char *s = buf;
-      s += sprintf(s, "%02X:%02X:%02X:%02X:%02X:%02X\n",
-      gdev_info_mac[0], gdev_info_mac[1],
-      gdev_info_mac[2], gdev_info_mac[3],
-      gdev_info_mac[4], gdev_info_mac[5]);
-      return (s - buf);
-}
-
-static ssize_t firmware_show(struct kobject *kobj, struct kobj_attribute *attr, char * buf)
-{
-   char *s = buf;
-   s += sprintf(s, "%s\n",gsoftwareVersion);
-   return (s - buf);
-}
-
-static ssize_t module_show(struct kobject *kobj, struct kobj_attribute *attr, char * buf)
-{
-   char *s = buf;
-   s += sprintf(s, "%s\n",ghardwareVersion);
-   return (s - buf);
-}
-
-#define debug_attr(_name) \
-        static struct kobj_attribute _name##_attr = { \
-        .attr = { \
-        .name = __stringify(_name), \
-        .mode = 0644, \
-        }, \
-        .show = _name##_show, \
-        }
-
-void wlan_dev_info( unsigned char *ucmac,  unsigned char *ucsw,  unsigned char  *uchw)
-{
-   if(!flag_wlan_dev_info)
-   {
-      static struct kobject *devInfoWifi_kobj;
-
-      debug_attr(mac);
-      debug_attr(firmware);
-      debug_attr(module);
-
-      static struct attribute * wifi_group[] = {
-              &mac_attr.attr,
-              &firmware_attr.attr,
-              &module_attr.attr,
-              NULL,
-      };
-
-      static struct attribute_group attr_wifi_group = {
-              .attrs = wifi_group,
-      };
-
-      flag_wlan_dev_info = 1;
-
-      if (!penv)
-           return;
-
-      if((gsoftwareVersion == NULL))
-      {
-           pr_err("gsoftwareVersion NULL pointer\n");
-           return;
-      }
-      if((ghardwareVersion == NULL))
-      {
-           pr_err("ghardwareVersion NULL pointer\n");
-           return;
-      }
-      if((ucmac == NULL))
-      {
-           pr_err("ucmac NULL pointer\n");
-           return;
-      }
-      if((ucsw == NULL))
-      {
-           pr_err("ucsw NULL pointer\n");
-           return;
-      }
-      if((uchw == NULL))
-      {
-           pr_err("uchw NULL pointer\n");
-           return;
-      }
-
-      memcpy(&gdev_info_mac[0], &ucmac[0], 6);
-      strlcpy(gsoftwareVersion, ucsw, strlen(ucsw)+1);
-      pr_info("sw : %s",gsoftwareVersion);
-      strlcpy(ghardwareVersion, uchw, strlen(uchw)+1);
-      pr_info("hw : %s",ghardwareVersion);
-
-      devInfoWifi_kobj = kobject_create_and_add("dev-info_wifi", NULL);
-
-      if (devInfoWifi_kobj == NULL)
-          pr_err("kobject_create_and_add NULL\n");
-      else
-      {
-         if(sysfs_create_group(devInfoWifi_kobj, &attr_wifi_group))
-            pr_err("sysfs_create_group FAILED\n");
-        else
-            pr_info("%s OK\n", __FUNCTION__);
-      }
-   }
-   pr_info("%s END", __FUNCTION__);
-}
-EXPORT_SYMBOL(wlan_dev_info);
 static int
 wcnss_trigger_config(struct platform_device *pdev)
 {
@@ -618,10 +506,18 @@ static struct platform_driver wcnss_wlan_driver = {
 
 static int __init wcnss_wlan_init(void)
 {
+	int ret = 0;
+
 	platform_driver_register(&wcnss_wlan_driver);
 	platform_driver_register(&wcnss_wlan_ctrl_driver);
 
-	return 0;
+#ifdef CONFIG_WCNSS_MEM_PRE_ALLOC
+	ret = wcnss_prealloc_init();
+	if (ret < 0)
+		pr_err("wcnss: pre-allocation failed\n");
+#endif
+
+	return ret;
 }
 
 static void __exit wcnss_wlan_exit(void)
@@ -637,6 +533,9 @@ static void __exit wcnss_wlan_exit(void)
 
 	platform_driver_unregister(&wcnss_wlan_ctrl_driver);
 	platform_driver_unregister(&wcnss_wlan_driver);
+#ifdef CONFIG_WCNSS_MEM_PRE_ALLOC
+	wcnss_prealloc_deinit();
+#endif
 }
 
 module_init(wcnss_wlan_init);

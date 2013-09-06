@@ -522,6 +522,7 @@ static int qseecom_set_client_mem_param(struct qseecom_dev_handle *data,
 	return 0;
 }
 
+
 static int __qseecom_listener_has_sent_rsp(struct qseecom_dev_handle *data)
 {
 	int ret;
@@ -770,20 +771,21 @@ static int qseecom_unload_app(struct qseecom_dev_handle *data)
 	int ret = 0;
 	struct qseecom_command_scm_resp resp;
 	struct qseecom_registered_app_list *ptr_app;
-	bool unload = false;
-	bool found_app = false;
+	uint32_t unload = 0;
 
 	if (qseecom.qseos_version == QSEOS_VERSION_14) {
 		spin_lock_irqsave(&qseecom.registered_app_list_lock, flags);
 		list_for_each_entry(ptr_app, &qseecom.registered_app_list_head,
 								list) {
 			if (ptr_app->app_id == data->client.app_id) {
-				found_app = true;
 				if (ptr_app->ref_cnt == 1) {
-					unload = true;
+					unload = __qseecom_cleanup_app(data);
+					list_del(&ptr_app->list);
+					kzfree(ptr_app);
 					break;
 				} else {
 					ptr_app->ref_cnt--;
+					data->released = true;
 					pr_warn("Can't unload app with id %d (it is inuse)\n",
 							ptr_app->app_id);
 					break;
@@ -793,20 +795,14 @@ static int qseecom_unload_app(struct qseecom_dev_handle *data)
 		spin_unlock_irqrestore(&qseecom.registered_app_list_lock,
 								flags);
 	}
-	if (found_app == false)  {
-		pr_err("Cannot find app with id = %d\n", data->client.app_id);
-		return -EINVAL;
+	if (!IS_ERR_OR_NULL(data->client.ihandle)) {
+		ion_unmap_kernel(qseecom.ion_clnt, data->client.ihandle);
+		ion_free(qseecom.ion_clnt, data->client.ihandle);
 	}
 
 	if ((unload) && (qseecom.qseos_version == QSEOS_VERSION_14)) {
 		struct qseecom_unload_app_ireq req;
 
-		__qseecom_cleanup_app(data);
-		spin_lock_irqsave(&qseecom.registered_app_list_lock, flags);
-		list_del(&ptr_app->list);
-		kzfree(ptr_app);
-		spin_unlock_irqrestore(&qseecom.registered_app_list_lock,
-								flags);
 		/* Populate the structure for sending scm call to load image */
 		req.qsee_cmd_id = QSEOS_APP_SHUTDOWN_COMMAND;
 		req.app_id = data->client.app_id;
@@ -843,11 +839,6 @@ static int qseecom_unload_app(struct qseecom_dev_handle *data)
 				break;
 			}
 		}
-	}
-	if (!IS_ERR_OR_NULL(data->client.ihandle)) {
-		ion_unmap_kernel(qseecom.ion_clnt, data->client.ihandle);
-		ion_free(qseecom.ion_clnt, data->client.ihandle);
-		data->client.ihandle = NULL;
 	}
 	data->released = true;
 	return ret;
@@ -1710,7 +1701,6 @@ static int qseecom_release(struct inode *inode, struct file *file)
 		mutex_unlock(&pil_access_lock);
 	}
 	kfree(data);
-	qsee_disable_clock_vote(CLK_DFAB);
 
 	return ret;
 }

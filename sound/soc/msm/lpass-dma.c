@@ -49,7 +49,7 @@ struct dai_drv {
 	u32	master_mode;
 };
 
-static struct dai_drv *dai[MAX_CHANNELS+1];
+static struct dai_drv *dai[MAX_CHANNELS];
 static spinlock_t dai_lock;
 
 static int dai_find_dma_channel(uint32_t intrsrc)

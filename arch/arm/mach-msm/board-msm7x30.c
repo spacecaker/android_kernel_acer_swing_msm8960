@@ -120,7 +120,7 @@
 
 #define MSM_FB_SIZE roundup(MSM_FB_PRIM_BUF_SIZE + MSM_FB_EXT_BUF_SIZE, 4096)
 
-#define MSM_PMEM_ADSP_SIZE      0x1E00000
+#define MSM_PMEM_ADSP_SIZE		0x2184000
 #define MSM_FLUID_PMEM_ADSP_SIZE	0x2800000
 #define PMEM_KERNEL_EBI0_SIZE   0x600000
 #define MSM_PMEM_AUDIO_SIZE     0x200000
@@ -998,7 +998,7 @@ static struct msm_camera_sensor_flash_data flash_vx6953 = {
 };
 
 static struct msm_camera_sensor_platform_info sensor_board_info_vx6953 = {
-	.mount_angle	= 0,
+	.mount_angle	= 270,
 	.cam_vreg = msm_7x30_back_cam_vreg,
 	.num_vreg = ARRAY_SIZE(msm_7x30_back_cam_vreg),
 	.gpio_conf = &msm_7x30_back_cam_gpio_conf,
@@ -4339,7 +4339,7 @@ static int display_common_power(int on)
 	}
 
 	if (quickvx_mddi_client)
-		rc = regulator_set_voltage(mddi_ldo20, 1500000, 1800000);
+		rc = regulator_set_voltage(mddi_ldo20, 1800000, 1800000);
 	else
 		rc = regulator_set_voltage(mddi_ldo20, 1500000, 1500000);
 
@@ -4695,6 +4695,7 @@ static int lcdc_panel_power(int on)
 
 	if (unlikely(!lcdc_power_initialized)) {
 		quickvx_mddi_client = 0;
+		regulator_put(mddi_ldo20);
 		display_common_init();
 		lcdc_power_initialized = 1;
 	}
@@ -5187,7 +5188,7 @@ static int bluetooth_power(int on)
 
 	int bahama_not_marimba = bahama_present();
 
-	if (bahama_not_marimba == -1) {
+	if (bahama_not_marimba < 0) {
 		printk(KERN_WARNING "%s: bahama_present: %d\n",
 				__func__, bahama_not_marimba);
 		return -ENODEV;

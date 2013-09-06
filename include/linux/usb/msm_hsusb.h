@@ -322,10 +322,6 @@ struct msm_otg {
 	unsigned cur_power;
 	struct delayed_work chg_work;
 	struct delayed_work pmic_id_status_work;
-#ifdef CONFIG_MACH_ACER_A9
-	struct workqueue_struct *detect_ac_queue;
-	struct delayed_work wait_for_ac_work;
-#endif
 	enum usb_chg_state chg_state;
 	enum usb_chg_type chg_type;
 	u8 dcd_retries;

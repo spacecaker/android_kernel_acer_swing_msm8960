@@ -447,36 +447,16 @@ static void rndis_response_complete(struct usb_ep *ep, struct usb_request *req)
 static void rndis_command_complete(struct usb_ep *ep, struct usb_request *req)
 {
 	struct f_rndis			*rndis = req->context;
-	struct usb_composite_dev	*cdev;
+	struct usb_composite_dev	*cdev = rndis->port.func.config->cdev;
 	int				status;
 	rndis_init_msg_type		*buf;
-
-	/*  Check struct rndis whether is NULL pointer */
-	if (rndis == NULL) {
-                pr_info("%s rndis is Null\n", __func__);
-                return;
-        }
-
-        /*  Check rndis->port.func.config->cdev whether is NULL pointer */
-        if (rndis->port.func.config->cdev == NULL ) {
-                pr_info("%s rndis->port.func.config->cdev  is Null\n", __func__);
-                return;
-        }
-
-        cdev = rndis->port.func.config->cdev;
-
 
 	/* received RNDIS command from USB_CDC_SEND_ENCAPSULATED_COMMAND */
 //	spin_lock(&dev->lock);
 	status = rndis_msg_parser(rndis->config, (u8 *) req->buf);
 	if (status < 0)
-#ifdef CONFIG_MACH_ACER_A9
-		/* Remove some debug parameters, these parameters will cause Kernel panic */
-		ERROR(cdev, "RNDIS command error %d \n", status);
-#else
 		ERROR(cdev, "RNDIS command error %d, %d/%d\n",
 			status, req->actual, req->length);
-#endif
 
 	buf = (rndis_init_msg_type *)req->buf;
 
@@ -854,6 +834,7 @@ rndis_unbind(struct usb_configuration *c, struct usb_function *f)
 
 	rndis_deregister(rndis->config);
 	rndis_exit();
+	rndis_string_defs[0].id = 0;
 
 	if (gadget_is_superspeed(c->cdev->gadget))
 		usb_free_descriptors(f->ss_descriptors);

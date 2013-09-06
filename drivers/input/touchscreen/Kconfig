@@ -786,11 +786,6 @@ config TOUCHSCREEN_USB_EASYTOUCH
 	  Say Y here if you have a EasyTouch USB Touch controller device support.
 	  If unsure, say N.
 
-config ACER_INPUT
-        default n
-        bool "acer input simulator device support" if EXPERT
-        depends on I2C
-
 config TOUCHSCREEN_TOUCHIT213
 	tristate "Sahara TouchIT-213 touchscreen"
 	select SERIO
@@ -951,23 +946,4 @@ config TOUCHSCREEN_FT5X06
          To compile this driver as a module, choose M here: the
          module will be called ft5x06_ts.
 
-config TOUCHSCREEN_CYPRESS
-       default n
-       tristate "CYPRESS touchscreen"
-       depends on I2C
-
-config TOUCHSCREEN_CYPRESS_ISSP
-       default n
-       tristate "CYPRESS touchscreen ISSP function"
-       depends on TOUCHSCREEN_CYPRESS
-
-config TOUCHSCREEN_CYPRESS_CYTTSP4
-       default n
-       tristate "CYPRESS touchscreen"
-       depends on I2C
-
-config TOUCHSCREEN_CYPRESS_DEBUG
-       default n
-       tristate "CYPRESS touchscreen debug function"
-       depends on TOUCHSCREEN_CYPRESS
 endif

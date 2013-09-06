@@ -233,12 +233,7 @@ int ll_back_merge_fn(struct request_queue *q, struct request *req,
 	if (unlikely(req->cmd_type == REQ_TYPE_BLOCK_PC))
 		max_sectors = queue_max_hw_sectors(q);
 	else
-#ifdef CONFIG_MACH_ACER_A9
-		if (rq_data_dir(req) == WRITE)
-			max_sectors = queue_max_write_sectors(q);
-		else
-#endif
-			max_sectors = queue_max_sectors(q);
+		max_sectors = queue_max_sectors(q);
 
 	if (blk_rq_sectors(req) + bio_sectors(bio) > max_sectors) {
 		req->cmd_flags |= REQ_NOMERGE;
@@ -262,12 +257,8 @@ int ll_front_merge_fn(struct request_queue *q, struct request *req,
 	if (unlikely(req->cmd_type == REQ_TYPE_BLOCK_PC))
 		max_sectors = queue_max_hw_sectors(q);
 	else
-#ifdef CONFIG_MACH_ACER_A9
-		if (rq_data_dir(req) == WRITE)
-			max_sectors = queue_max_write_sectors(q);
-		else
-#endif
-			max_sectors = queue_max_sectors(q);
+		max_sectors = queue_max_sectors(q);
+
 
 	if (blk_rq_sectors(req) + bio_sectors(bio) > max_sectors) {
 		req->cmd_flags |= REQ_NOMERGE;
@@ -289,9 +280,6 @@ static int ll_merge_requests_fn(struct request_queue *q, struct request *req,
 	int total_phys_segments;
 	unsigned int seg_size =
 		req->biotail->bi_seg_back_size + next->bio->bi_seg_front_size;
-#ifdef CONFIG_MACH_ACER_A9
-	unsigned short max_sectors;
-#endif
 
 	/*
 	 * First check if the either of the requests are re-queued
@@ -303,16 +291,7 @@ static int ll_merge_requests_fn(struct request_queue *q, struct request *req,
 	/*
 	 * Will it become too large?
 	 */
-#ifdef CONFIG_MACH_ACER_A9
-	if (rq_data_dir(req) == WRITE)
-		max_sectors = queue_max_write_sectors(q);
-	else
-		max_sectors = queue_max_sectors(q);
-
-	if ((blk_rq_sectors(req) + blk_rq_sectors(next)) > max_sectors)
-#else
 	if ((blk_rq_sectors(req) + blk_rq_sectors(next)) > queue_max_sectors(q))
-#endif
 		return 0;
 
 	total_phys_segments = req->nr_phys_segments + next->nr_phys_segments;

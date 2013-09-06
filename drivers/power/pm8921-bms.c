@@ -54,10 +54,6 @@
 #define TEMP_IAVG_STORAGE	0x105
 #define TEMP_IAVG_STORAGE_USE_MASK	0x0F
 
-#ifdef CONFIG_MACH_ACER_A9
-extern int acer_sku_wi_gauge;
-#endif
-
 enum pmic_bms_interrupts {
 	PM8921_BMS_SBI_WRITE_OK,
 	PM8921_BMS_CC_THR,
@@ -179,12 +175,6 @@ static int calculated_soc = -EINVAL;
 static int last_soc = -EINVAL;
 static int last_real_fcc_mah = -EINVAL;
 static int last_real_fcc_batt_temp = -EINVAL;
-#ifdef CONFIG_MACH_ACER_A9
-int last_calc_fcc = -EINVAL;
-int last_calc_pc = -EINVAL;
-int last_calc_soc = -EINVAL;
-int last_calc_ruc = -EINVAL;
-#endif
 
 static int bms_ops_set(const char *val, const struct kernel_param *kp)
 {
@@ -1413,10 +1403,6 @@ static int calculate_remaining_charge_uah(struct pm8921_bms_chip *chip,
 	ocv = raw->last_good_ocv_uv;
 	pc = calculate_pc(chip, ocv, batt_temp, chargecycles);
 	pr_debug("ocv = %d pc = %d\n", ocv, pc);
-#ifdef CONFIG_MACH_ACER_A9
-	last_calc_fcc = fcc_uah;
-	last_calc_pc = pc;
-#endif
 	return (fcc_uah * pc) / 100;
 }
 
@@ -2021,11 +2007,6 @@ static int calculate_state_of_charge(struct pm8921_bms_chip *chip,
 		pr_debug("DONE for O soc is %d, pon ocv adjusted to %duV\n",
 				soc, chip->last_ocv_uv);
 	}
-
-#ifdef CONFIG_MACH_ACER_A9
-	last_calc_ruc = remaining_usable_charge_uah;
-	last_calc_soc = soc;
-#endif
 
 	if (soc > 100)
 		soc = 100;
@@ -2786,41 +2767,6 @@ static void check_initial_ocv(struct pm8921_bms_chip *chip)
 	pr_debug("ocv_uv = %d last_ocv_uv = %d\n", ocv_uv, chip->last_ocv_uv);
 }
 
-#ifdef CONFIG_ARCH_ACER_MSM8960
-#ifdef CONFIG_MACH_ACER_A11RD
-extern struct pm8921_bms_battery_data  a11_2050_data;
-extern char a11_2050_data_ver[];
-static int set_battery_data(struct pm8921_bms_chip *chip)
-{
-	pr_info("Load pm8921_bms_battery_data: a11_2050_data(v%s)\n",
-								a11_2050_data_ver);
-	chip->fcc = a11_2050_data.fcc;
-	chip->fcc_temp_lut = a11_2050_data.fcc_temp_lut;
-	chip->fcc_sf_lut = a11_2050_data.fcc_sf_lut;
-	chip->pc_temp_ocv_lut = a11_2050_data.pc_temp_ocv_lut;
-	chip->rbatt_sf_lut = a11_2050_data.rbatt_sf_lut;
-	chip->default_rbatt_mohm = a11_2050_data.default_rbatt_mohm;
-	return 0;
-}
-#else  //CONFIG_MACH_ACER_A9
-extern struct pm8921_bms_battery_data  a9_1460_data;
-extern char a9_1460_data_ver[];
-static int set_battery_data(struct pm8921_bms_chip *chip)
-{
-	pr_info("Load pm8921_bms_battery_data: a9_1460_data(v%s)\n",
-								a9_1460_data_ver);
-	chip->fcc = a9_1460_data.fcc;
-	chip->fcc_temp_lut = a9_1460_data.fcc_temp_lut;
-	chip->fcc_sf_lut = a9_1460_data.fcc_sf_lut;
-	chip->pc_temp_ocv_lut = a9_1460_data.pc_temp_ocv_lut;
-	chip->pc_sf_lut = a9_1460_data.pc_sf_lut;
-	chip->rbatt_sf_lut = a9_1460_data.rbatt_sf_lut;
-	chip->default_rbatt_mohm = a9_1460_data.default_rbatt_mohm;
-	chip->delta_rbatt_mohm = a9_1460_data.delta_rbatt_mohm;
-	return 0;
-}
-#endif
-#else
 static int64_t read_battery_id(struct pm8921_bms_chip *chip)
 {
 	int rc;
@@ -2888,7 +2834,6 @@ desay:
 		chip->delta_rbatt_mohm = desay_5200_data.delta_rbatt_mohm;
 		return 0;
 }
-#endif
 
 enum bms_request_operation {
 	CALC_FCC,
@@ -3213,15 +3158,6 @@ static int __devinit pm8921_bms_probe(struct platform_device *pdev)
 	struct pm8921_bms_chip *chip;
 	const struct pm8921_bms_platform_data *pdata
 				= pdev->dev.platform_data;
-
-#ifdef CONFIG_MACH_ACER_A9
-	if (acer_sku_wi_gauge) {
-		/* workaround for suspend power saving */
-		pm8xxx_calib_ccadc();
-		pr_err("Using TI Gauge\n");
-		return -EINVAL;
-	}
-#endif
 
 	if (!pdata) {
 		pr_err("missing platform data\n");

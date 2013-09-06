@@ -54,6 +54,7 @@
 #endif
 
 #define PLATFORM_SUBTYPE_SGLTE	6
+#define PLATFORM_SUBTYPE_DSDA	7
 
 enum msm_cpu {
 	MSM_CPU_UNKNOWN = 0,
@@ -73,6 +74,7 @@ enum msm_cpu {
 	MSM_CPU_7X25AA,
 	MSM_CPU_7X25AB,
 	MSM_CPU_8064,
+	MSM_CPU_8064AB,
 	MSM_CPU_8930,
 	MSM_CPU_8930AA,
 	MSM_CPU_7X27AA,
@@ -283,6 +285,15 @@ static inline int cpu_is_apq8064(void)
 #endif
 }
 
+static inline int cpu_is_apq8064ab(void)
+{
+#ifdef CONFIG_ARCH_APQ8064
+	return read_msm_cpu_type() == MSM_CPU_8064AB;
+#else
+	return 0;
+#endif
+}
+
 static inline int cpu_is_msm8930(void)
 {
 #ifdef CONFIG_ARCH_MSM8930
@@ -342,18 +353,6 @@ static inline int cpu_is_msm8625(void)
 
 	BUG_ON(cpu == MSM_CPU_UNKNOWN);
 	return cpu == MSM_CPU_8625;
-#else
-	return 0;
-#endif
-}
-
-static inline int cpu_is_msm8974(void)
-{
-#ifdef CONFIG_ARCH_MSM8974
-	enum msm_cpu cpu = socinfo_get_msm_cpu();
-
-	BUG_ON(cpu == MSM_CPU_UNKNOWN);
-	return cpu == MSM_CPU_8974;
 #else
 	return 0;
 #endif

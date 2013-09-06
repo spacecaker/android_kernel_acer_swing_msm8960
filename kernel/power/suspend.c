@@ -27,10 +27,6 @@
 #include <linux/rtc.h>
 #include <trace/events/power.h>
 
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-#include <asm/uaccess.h>
-#endif
-
 #include "power.h"
 
 const char *const pm_states[PM_SUSPEND_MAX] = {
@@ -42,60 +38,6 @@ const char *const pm_states[PM_SUSPEND_MAX] = {
 };
 
 static const struct platform_suspend_ops *suspend_ops;
-
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-fast_dormancy_level fast_dormancy_enabled = FD_ENABLE;
-#endif
-
-
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-void kernel_enter_fast_dormancy(void)
-{
-	static struct file* fp;
-	mm_segment_t fs;
-	int len;
-	int cnt;
-	int res_len;
-	char buffer[32];
-
-	if(fast_dormancy_enabled != FD_ENABLE) {
-		printk(KERN_INFO "Fast Dormancy level : %d, abort\n", fast_dormancy_enabled);
-		return;
-	}
-
-
-	fs = get_fs();
-	set_fs(KERNEL_DS);
-
-	if(!fp) {
-		fp = filp_open("/dev/smd11", O_RDWR | O_NONBLOCK, 0);
-		printk(KERN_INFO "Open smd11\n");
-	}
-
-	if(fp) {
-		len = fp->f_op->write(fp, "AT$QCFD\r", 8, &fp->f_pos);
-		for(cnt = 0; cnt < 10; cnt++) {
-			msleep(100);
-			res_len = fp->f_op->read(fp, buffer, 32, &fp->f_pos);
-			if(res_len > 0) {
-				if(res_len >= 32) {
-					buffer[31] = '\0';
-				}
-				else {
-					buffer[res_len] = '\0';
-				}
-				break;
-			}
-		}
-		if(len != 8) {
-			printk(KERN_INFO "Go fast dormancy FAIL\n");
-		}
-	} else {
-		printk(KERN_INFO "Open smd11 fail\n");
-	}
-	set_fs(fs);
-}
-#endif
 
 /**
  * suspend_set_ops - Set the global suspend method table.
@@ -162,10 +104,6 @@ static int suspend_prepare(void)
 	error = pm_notifier_call_chain(PM_SUSPEND_PREPARE);
 	if (error)
 		goto Finish;
-
-#if defined(CONFIG_ARCH_ACER_MSM8960)
-	kernel_enter_fast_dormancy();
-#endif
 
 	error = suspend_freeze_processes();
 	if (!error)
@@ -243,7 +181,6 @@ static int suspend_enter(suspend_state_t state, bool *wakeup)
 	arch_suspend_enable_irqs();
 	BUG_ON(irqs_disabled());
 
-	 printk("\nresume:resume\n");
  Enable_cpus:
 	enable_nonboot_cpus();
 

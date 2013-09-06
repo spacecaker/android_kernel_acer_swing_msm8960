@@ -59,10 +59,6 @@ static struct wake_lock suspend_backoff_lock;
 
 static unsigned suspend_short_count;
 
-#ifdef CONFIG_ARCH_ACER_MSM8960
-extern int early_suspend_is_working;
-#endif
-
 #ifdef CONFIG_WAKELOCK_STAT
 static struct wake_lock deleted_wake_locks;
 static ktime_t last_sleep_time_update;
@@ -269,46 +265,6 @@ long has_wake_lock(int type)
 	return ret;
 }
 
-#ifdef CONFIG_ARCH_ACER_MSM8960
-long print_suspend_active_locks(void)
-{
-	struct wake_lock *lock;
-	bool print_expired = true;
-	long ret;
-	unsigned long irqflags;
-
-	spin_lock_irqsave(&list_lock, irqflags);
-	ret = has_wake_lock_locked(WAKE_LOCK_SUSPEND);
-	if (!ret) {
-		spin_unlock_irqrestore(&list_lock, irqflags);
-		return ret;
-	}
-
-	list_for_each_entry(lock, &active_wake_locks[WAKE_LOCK_SUSPEND], link) {
-		if (lock->flags & WAKE_LOCK_AUTO_EXPIRE) {
-			long timeout = lock->expires - jiffies;
-			if (timeout > 0)
-				pr_info("active wake lock %s, time left %ld\n",
-					lock->name, timeout);
-			else if (print_expired)
-				pr_info("wake lock %s, expired\n", lock->name);
-		} else {
-			/* ignore wake_lock caused by AC/USB */
-			if ((lock->flags & WAKE_LOCK_ACTIVE) && lock->name != NULL) {
-				if (strcmp(lock->name, "pm8921_eoc")  && strcmp(lock->name, "msm_otg"))
-					pr_info("active wake lock %s\n", lock->name);
-			}
-
-			if (!(debug_mask & DEBUG_EXPIRE))
-				print_expired = false;
-		}
-	}
-	spin_unlock_irqrestore(&list_lock, irqflags);
-
-	return ret;
-}
-#endif
-
 static void suspend_sys_sync(struct work_struct *work)
 {
 	if (debug_mask & DEBUG_SUSPEND)
@@ -391,11 +347,6 @@ static void suspend(struct work_struct *work)
 			pr_info("suspend: abort suspend\n");
 		return;
 	}
-
-#ifdef CONFIG_ARCH_ACER_MSM8960
-	early_suspend_is_working = 0;
-#endif
-	pr_info("suspend:suspend\n");
 
 	entry_event_num = current_event_num;
 	suspend_sys_sync_queue();

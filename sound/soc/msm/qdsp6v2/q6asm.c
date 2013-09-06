@@ -478,13 +478,13 @@ void q6asm_audio_client_free(struct audio_client *ac)
 
 int q6asm_set_io_mode(struct audio_client *ac, uint32_t mode)
 {
+	ac->io_mode &= 0xFF00;
+	pr_debug("%s ac->mode after anding with FF00:0x[%x],\n",
+		__func__, ac->io_mode);
 	if (ac == NULL) {
 		pr_err("%s APR handle NULL\n", __func__);
 		return -EINVAL;
 	}
-	ac->io_mode &= 0xFF00;
-	pr_debug("%s ac->mode after anding with FF00:0x[%x],\n",
-		__func__, ac->io_mode);
 	if ((mode == ASYNC_IO_MODE) || (mode == SYNC_IO_MODE)) {
 		ac->io_mode |= mode;
 		pr_debug("%s:Set Mode to 0x[%x]\n", __func__, ac->io_mode);
@@ -797,7 +797,7 @@ static int32_t q6asm_mmapcallback(struct apr_client_data *data, void *priv)
 {
 	uint32_t sid = 0;
 	uint32_t dir = 0;
-	uint32_t *payload;
+	uint32_t *payload = data->payload;
 	unsigned long dsp_flags;
 
 	struct audio_client *ac = NULL;
@@ -807,7 +807,6 @@ static int32_t q6asm_mmapcallback(struct apr_client_data *data, void *priv)
 		pr_err("%s: Invalid CB\n", __func__);
 		return 0;
 	}
-	payload = data->payload;
 	if (data->opcode == RESET_EVENTS) {
 		pr_debug("%s: Reset event is received: %d %d apr[%p]\n",
 				__func__,

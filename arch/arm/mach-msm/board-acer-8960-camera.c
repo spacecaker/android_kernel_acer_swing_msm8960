@@ -217,10 +217,9 @@ static struct msm_camera_sensor_strobe_flash_data strobe_flash_xenon = {
 #ifdef CONFIG_MACH_ACER_A9
 #if defined(CONFIG_MSM_CAMERA_FLASH_ADP1650) || defined(CONFIG_MSM_CAMERA_FLASH_ADP1660)
 static struct msm_camera_sensor_flash_src msm_flash_drv_ic_src = {
-	.flash_sr_type = MSM_CAMERA_FLASH_SRC_EXT,
-        ._fsrc.ext_driver_src.led_en = VFE_CAMIF_TIMER1_GPIO,
-        ._fsrc.ext_driver_src.led_flash_en = VFE_CAMIF_TIMER2_GPIO,
-        ._fsrc.ext_driver_src.flash_id = MAM_CAMERA_EXT_LED_FLASH_SC628A,
+	.flash_sr_type = MSM_CAMERA_FLASH_SRC_DRV_IC,
+	._fsrc.drv_ic_src.flash_en_gpio = 2,
+	._fsrc.drv_ic_src.strobe_gpio = 3,
 };
 #else
 #ifdef CONFIG_MSM_CAMERA_FLASH

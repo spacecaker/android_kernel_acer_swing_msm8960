@@ -575,13 +575,8 @@ page_is_mapped:
 
 alloc_new:
 	if (bio == NULL) {
-#ifdef CONFIG_MACH_ACER_A9
-		bio = mpage_alloc(bdev, blocks[0] << (blkbits - 9),
-				bio_get_write_nr_vecs(bdev), GFP_NOFS|__GFP_HIGH);
-#else
 		bio = mpage_alloc(bdev, blocks[0] << (blkbits - 9),
 				bio_get_nr_vecs(bdev), GFP_NOFS|__GFP_HIGH);
-#endif
 		if (bio == NULL)
 			goto confused;
 	}

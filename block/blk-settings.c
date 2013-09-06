@@ -113,9 +113,6 @@ void blk_set_default_limits(struct queue_limits *lim)
 	lim->seg_boundary_mask = BLK_SEG_BOUNDARY_MASK;
 	lim->max_segment_size = BLK_MAX_SEGMENT_SIZE;
 	lim->max_sectors = lim->max_hw_sectors = BLK_SAFE_MAX_SECTORS;
-#ifdef CONFIG_MACH_ACER_A9
-	lim->max_write_sectors = lim->max_sectors;
-#endif
 	lim->max_discard_sectors = 0;
 	lim->discard_granularity = 0;
 	lim->discard_alignment = 0;
@@ -148,9 +145,6 @@ void blk_set_stacking_limits(struct queue_limits *lim)
 	lim->max_hw_sectors = UINT_MAX;
 
 	lim->max_sectors = BLK_DEF_MAX_SECTORS;
-#ifdef CONFIG_MACH_ACER_A9
-	lim->max_write_sectors = lim->max_sectors;
-#endif
 }
 EXPORT_SYMBOL(blk_set_stacking_limits);
 
@@ -263,24 +257,8 @@ void blk_limits_max_hw_sectors(struct queue_limits *limits, unsigned int max_hw_
 	limits->max_hw_sectors = max_hw_sectors;
 	limits->max_sectors = min_t(unsigned int, max_hw_sectors,
 				    BLK_DEF_MAX_SECTORS);
-#ifdef CONFIG_MACH_ACER_A9
-	limits->max_write_sectors = limits->max_sectors;
-#endif
 }
 EXPORT_SYMBOL(blk_limits_max_hw_sectors);
-
-#ifdef CONFIG_MACH_ACER_A9
-void blk_queue_max_write_sectors(struct request_queue *q, unsigned int max_sectors)
-{
-	if (max_sectors > q->limits.max_hw_sectors
-		|| (max_sectors << 9) < PAGE_CACHE_SIZE) {
-		printk(KERN_ERR "%s: set max write sector failed\n", __func__);
-		return;
-	}
-	q->limits.max_write_sectors = max_sectors;
-}
-EXPORT_SYMBOL(blk_queue_max_write_sectors);
-#endif
 
 /**
  * blk_queue_max_hw_sectors - set max sectors for a request for this queue
@@ -532,9 +510,6 @@ int blk_stack_limits(struct queue_limits *t, struct queue_limits *b,
 	unsigned int top, bottom, alignment, ret = 0;
 
 	t->max_sectors = min_not_zero(t->max_sectors, b->max_sectors);
-#ifdef CONFIG_MACH_ACER_A9
-	t->max_write_sectors = min_not_zero(t->max_write_sectors, b->max_write_sectors);
-#endif
 	t->max_hw_sectors = min_not_zero(t->max_hw_sectors, b->max_hw_sectors);
 	t->bounce_pfn = min_not_zero(t->bounce_pfn, b->bounce_pfn);
 

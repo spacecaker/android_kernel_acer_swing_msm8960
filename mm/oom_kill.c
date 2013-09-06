@@ -418,18 +418,9 @@ static void dump_tasks(const struct mem_cgroup *memcg, const nodemask_t *nodemas
 	}
 }
 
-#ifdef CONFIG_ARCH_ACER_MSM8960
-extern int msm_watchdog_suspend(struct device *dev);
-extern int msm_watchdog_resume(struct device *dev);
-#endif
-
 static void dump_header(struct task_struct *p, gfp_t gfp_mask, int order,
 			struct mem_cgroup *memcg, const nodemask_t *nodemask)
 {
-#ifdef CONFIG_ARCH_ACER_MSM8960
-	/* Suspend wdog until all stacks are printed */
-	msm_watchdog_suspend(NULL);
-#endif
 	task_lock(current);
 	pr_warning("%s invoked oom-killer: gfp_mask=0x%x, order=%d, "
 		"oom_adj=%d, oom_score_adj=%d\n",
@@ -442,9 +433,6 @@ static void dump_header(struct task_struct *p, gfp_t gfp_mask, int order,
 	show_mem(SHOW_MEM_FILTER_NODES);
 	if (sysctl_oom_dump_tasks)
 		dump_tasks(memcg, nodemask);
-#ifdef CONFIG_ARCH_ACER_MSM8960
-	msm_watchdog_resume(NULL);
-#endif
 }
 
 #define K(x) ((x) << (PAGE_SHIFT-10))

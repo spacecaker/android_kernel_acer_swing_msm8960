@@ -64,11 +64,6 @@ $(KERNEL_OUT):
 $(KERNEL_CONFIG): $(KERNEL_OUT)
 	$(MAKE) -C kernel O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi- $(KERNEL_DEFCONFIG)
 
-ifeq ($(SECURE_ENHANCEMENT_BUILD),y)
-	@echo "Secure mount enabled"
-	kernel/scripts/config --file $(KERNEL_CONFIG) --enable ACER_SECURE_MOUNT
-endif
-
 $(KERNEL_OUT)/piggy : $(TARGET_PREBUILT_INT_KERNEL)
 	$(hide) gunzip -c $(KERNEL_OUT)/arch/arm/boot/compressed/piggy.gzip > $(KERNEL_OUT)/piggy
 

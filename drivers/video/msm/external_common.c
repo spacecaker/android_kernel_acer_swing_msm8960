@@ -1416,11 +1416,7 @@ static void add_supported_video_format(
 
 	timing = hdmi_common_get_supported_mode(video_format);
 	supported = timing != NULL;
-#ifdef CONFIG_MACH_ACER_A9
-	pr_info("EDID: format: %d [%s], %s\n",
-#else
 	DEV_DBG("EDID: format: %d [%s], %s\n",
-#endif
 		video_format, video_format_2string(video_format),
 		supported ? "Supported" : "Not-Supported");
 
@@ -2029,12 +2025,6 @@ bool hdmi_common_get_video_format_from_drv_data(struct msm_fb_data_type *mfd)
 			if (mfd->var_yres == 540) {/* interlaced */
 				format = HDMI_VFRMT_1920x1080i60_16_9;
 			} else if (mfd->var_yres == 1080) {
-#ifdef CONFIG_ACER_HDMI_MHL_SII8334
-				if (mfd->var_frame_rate == 30000)
-					format = HDMI_VFRMT_1920x1080p30_16_9;
-				else
-					format = HDMI_VFRMT_1920x1080p24_16_9;
-#else
 				if (mfd->var_frame_rate == 50000)
 					format = HDMI_VFRMT_1920x1080p50_16_9;
 				else if (mfd->var_frame_rate == 24000)
@@ -2045,7 +2035,6 @@ bool hdmi_common_get_video_format_from_drv_data(struct msm_fb_data_type *mfd)
 					format = HDMI_VFRMT_1920x1080p30_16_9;
 				else
 					format = HDMI_VFRMT_1920x1080p60_16_9;
-#endif
 			}
 			break;
 		}
@@ -2053,7 +2042,7 @@ bool hdmi_common_get_video_format_from_drv_data(struct msm_fb_data_type *mfd)
 
 	changed = external_common_state->video_resolution != format;
 	if (external_common_state->video_resolution != format)
-		pr_info("switching %s => %s", video_format_2string(
+		DEV_DBG("switching %s => %s", video_format_2string(
 			external_common_state->video_resolution),
 			video_format_2string(format));
 	else

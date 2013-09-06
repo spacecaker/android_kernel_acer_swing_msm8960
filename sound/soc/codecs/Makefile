@@ -49,15 +49,7 @@ snd-soc-twl6040-objs := twl6040.o
 snd-soc-uda134x-objs := uda134x.o
 snd-soc-uda1380-objs := uda1380.o
 snd-soc-wcd9304-objs := wcd9304.o wcd9304-tables.o
-ifdef CONFIG_MACH_ACER_A9
-ifdef CONFIG_MACH_ACER_A11RD
-snd-soc-wcd9310-objs := wcd9310-acer-a11.o wcd9310-tables.o
-else
-snd-soc-wcd9310-objs := wcd9310-acer-a9.o wcd9310-tables.o
-endif
-else
 snd-soc-wcd9310-objs := wcd9310.o wcd9310-tables.o
-endif
 snd-soc-cs8427-objs := cs8427.o
 snd-soc-wcd9320-objs := wcd9320.o wcd9320-tables.o
 snd-soc-wl1273-objs := wl1273.o
@@ -114,15 +106,6 @@ snd-soc-msm-stub-objs := msm_stub.o
 snd-soc-max9877-objs := max9877.o
 snd-soc-tpa6130a2-objs := tpa6130a2.o
 
-ifdef CONFIG_ARCH_ACER_MSM8960
-ifdef CONFIG_MACH_ACER_A11RD
-obj-$(CONFIG_ACER_HEADSET)		+= acer_headset_a11.o
-obj-$(CONFIG_ACER_HEADSET_BUTT)	+= acer_headset_butt_a11.o
-else
-obj-$(CONFIG_ACER_HEADSET)		+= acer_headset.o
-obj-$(CONFIG_ACER_HEADSET_BUTT)	+= acer_headset_butt.o
-endif
-endif
 obj-$(CONFIG_SND_SOC_88PM860X)	+= snd-soc-88pm860x.o
 obj-$(CONFIG_SND_SOC_AC97_CODEC)	+= snd-soc-ac97.o
 obj-$(CONFIG_SND_SOC_AD1836)	+= snd-soc-ad1836.o
